@@ -1,0 +1,72 @@
+import type { BJ, RankingEntry, LiveEntry } from "../types/bj";
+
+export const mockBJs: BJ[] = [
+  {
+    id: "bj-1",
+    name: "엑셀황제",
+    platform: "youtube",
+    isLive: true,
+    currentScore: 128500,
+    thumbnailUrl: "/thumbnails/bj1.jpg",
+    channelUrl: "https://www.youtube.com/@excelking",
+    streamUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  },
+  {
+    id: "bj-2",
+    name: "골드여신",
+    platform: "soop",
+    isLive: true,
+    currentScore: 98500,
+    thumbnailUrl: "/thumbnails/bj2.jpg",
+    channelUrl: "https://bjafree.soop.com/goldgoddess",
+    streamUrl: "https://play.afreecatv.com/goldgoddess/123456",
+  },
+  {
+    id: "bj-3",
+    name: "판다의신",
+    platform: "panda",
+    isLive: false,
+    currentScore: 75400,
+    thumbnailUrl: "/thumbnails/bj3.jpg",
+    channelUrl: "https://www.pandalive.co.kr/pandagod",
+  },
+  {
+    id: "bj-4",
+    name: "실시간매니아",
+    platform: "youtube",
+    isLive: true,
+    currentScore: 64200,
+    thumbnailUrl: "/thumbnails/bj4.jpg",
+    channelUrl: "https://www.youtube.com/@realtime",
+    streamUrl: "https://www.youtube.com/watch?v=O6Dh1Q_5vLk",
+  },
+  {
+    id: "bj-5",
+    name: "엑셀장인",
+    platform: "soop",
+    isLive: true,
+    currentScore: 51200,
+    thumbnailUrl: "/thumbnails/bj5.jpg",
+    channelUrl: "https://play.afreecatv.com/excelmaster",
+    streamUrl: "https://play.afreecatv.com/excelmaster/987654",
+  },
+];
+
+export const mockRanking: RankingEntry[] = mockBJs
+  .map<RankingEntry>((bj, index) => ({
+    rank: index + 1,
+    bj,
+    points: bj.currentScore,
+    diffFromYesterday: index === 0 ? 1 : index === 1 ? 0 : -index,
+  }))
+  .sort((a, b) => a.rank - b.rank);
+
+export const mockLives: LiveEntry[] = mockBJs
+  .filter((bj) => bj.isLive)
+  .map<LiveEntry>((bj, index) => ({
+    bj,
+    title: `${bj.name}의 광기 엑셀 방송 #${index + 1}`,
+    viewerCount: 1000 * (mockBJs.length - index),
+    startedAt: new Date(Date.now() - (index + 1) * 15 * 60 * 1000).toISOString(),
+  }));
+
