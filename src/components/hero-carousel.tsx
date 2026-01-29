@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { LiveEntry } from "../types/bj";
 import { PlatformBadge } from "./platform-badge";
@@ -26,7 +28,7 @@ export function HeroCarousel({ featured, allLives }: HeroCarouselProps) {
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
         <UniversalPlayerTrigger bj={featured.bj} title={featured.title}>
           <article className="group relative overflow-hidden rounded-3xl border border-amber-500/40 bg-gradient-to-br from-zinc-950 via-zinc-950 to-amber-950/40 p-[1px] shadow-[0_30px_80px_rgba(0,0,0,0.9)]">
             <div className="relative overflow-hidden rounded-[22px] bg-zinc-950">
@@ -36,6 +38,11 @@ export function HeroCarousel({ featured, allLives }: HeroCarouselProps) {
                   alt={featured.bj.name}
                   fill
                   className="object-cover transition duration-500 group-hover:scale-110 group-hover:brightness-110"
+                  unoptimized={featured.bj.thumbnailUrl?.startsWith("http") ? false : true}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/window.svg";
+                  }}
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
@@ -79,6 +86,11 @@ export function HeroCarousel({ featured, allLives }: HeroCarouselProps) {
                     alt={live.bj.name}
                     fill
                     className="object-cover transition duration-300 group-hover:scale-110 group-hover:brightness-110"
+                    unoptimized={live.bj.thumbnailUrl?.startsWith("http") ? false : true}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/window.svg";
+                    }}
                   />
                   <div className="absolute left-1.5 top-1.5">
                     <PlatformBadge platform={live.bj.platform} size="xs" />

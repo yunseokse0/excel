@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { LiveEntry } from "../types/bj";
 import { PlatformBadge } from "./platform-badge";
@@ -19,7 +21,7 @@ export function LiveGrid({ lives }: LiveGridProps) {
         </span>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
         {lives.map((live) => (
           <UniversalPlayerTrigger
             key={live.bj.id}
@@ -33,6 +35,11 @@ export function LiveGrid({ lives }: LiveGridProps) {
                   alt={live.bj.name}
                   fill
                   className="object-cover transition duration-300 group-hover:scale-110 group-hover:brightness-110"
+                  unoptimized={live.bj.thumbnailUrl?.startsWith("http") ? false : true}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/window.svg";
+                  }}
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5">

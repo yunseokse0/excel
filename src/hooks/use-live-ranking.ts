@@ -26,6 +26,16 @@ export function useLiveRanking() {
     async function load() {
       try {
         const supabase = getSupabaseBrowserClient();
+        
+        // Frontend 기반 모드: Supabase가 없으면 mock 데이터 사용
+        if (!supabase) {
+          console.warn("Supabase not configured, using mock ranking.");
+          if (!cancelled) {
+            setLoading(false);
+          }
+          return;
+        }
+
         const { data, error } = await supabase
           .from("live_ranking_view")
           .select("*")
@@ -33,6 +43,9 @@ export function useLiveRanking() {
 
         if (error) {
           console.error("Failed to load live ranking from Supabase", error);
+          if (!cancelled) {
+            setLoading(false);
+          }
           return;
         }
 

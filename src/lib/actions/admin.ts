@@ -9,37 +9,53 @@ import { getSupabaseServerClient } from "../supabase-server";
 
 export async function updateBJScore(bjId: string, newScore: number) {
   const supabase = getSupabaseServerClient();
-
-  const { error } = await supabase
-    .from("bj_stats")
-    .update({
-      current_score: newScore,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("bj_id", bjId);
-
-  if (error) {
-    console.error("Failed to update BJ score", error);
-    return { success: false, error: error.message };
+  if (!supabase) {
+    return { success: false, error: "Supabase가 설정되지 않았습니다." };
   }
 
-  revalidatePath("/ranking");
-  return { success: true };
+  try {
+    const { error } = await supabase
+      .from("bj_stats")
+      .update({
+        current_score: newScore,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("bj_id", bjId);
+
+    if (error) {
+      console.error("Failed to update BJ score", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/ranking");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update BJ score:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
 }
 
 export async function bulkIncrementAllScores(delta: number) {
   const supabase = getSupabaseServerClient();
-
-  const { error } = await supabase.rpc("bulk_increment_bj_scores", {
-    p_delta: delta,
-  });
-
-  if (error) {
-    console.error("Failed to bulk increment scores", error);
-    return { success: false, error: error.message };
+  if (!supabase) {
+    return { success: false, error: "Supabase가 설정되지 않았습니다." };
   }
 
-  revalidatePath("/ranking");
-  return { success: true };
+  try {
+    const { error } = await supabase.rpc("bulk_increment_bj_scores", {
+      p_delta: delta,
+    });
+
+    if (error) {
+      console.error("Failed to bulk increment scores", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/ranking");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to bulk increment scores:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
 }
 

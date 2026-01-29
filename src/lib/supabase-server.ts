@@ -15,7 +15,9 @@ if (!serviceRoleKey) {
 
 export function getSupabaseServerClient() {
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Supabase service role env not configured");
+    // Supabase가 설정되지 않은 경우 null 반환 (Frontend 기반 모드)
+    console.warn("Supabase not configured. Running in frontend-only mode.");
+    return null as any;
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {

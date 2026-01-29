@@ -5,6 +5,8 @@ import type { RankingEntry } from "../../types/bj";
 import { useLiveRanking } from "../../hooks/use-live-ranking";
 import { updateBJScore, bulkIncrementAllScores } from "../../lib/actions/admin";
 import { useToast } from "../ui/toast-context";
+import { YouTubeSyncButton } from "./youtube-sync-button";
+import { SoopSyncButton } from "./soop-sync-button";
 
 interface RankingEditTableProps {
   initialRanking?: RankingEntry[];
@@ -90,6 +92,8 @@ export function RankingEditTable({ initialRanking }: RankingEditTableProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <YouTubeSyncButton />
+          <SoopSyncButton />
           <button
             type="button"
             disabled={bulkLoading}

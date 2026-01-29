@@ -5,8 +5,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export function getSupabaseBrowserClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
-    // 환경 변수가 없으면 Supabase 기능을 비활성화하고, 상위에서 mock 데이터로 fallback 하도록 합니다.
-    throw new Error("Supabase env not configured");
+    // Frontend 기반 모드: null 반환 (호출하는 쪽에서 mock 데이터로 처리)
+    return null as any;
   }
 
   return createClient(supabaseUrl, supabaseAnonKey);

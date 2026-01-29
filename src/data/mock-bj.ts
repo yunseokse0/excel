@@ -1,5 +1,11 @@
 import type { BJ, RankingEntry, LiveEntry } from "../types/bj";
 
+// Placeholder 이미지 URL 사용 (실제 이미지가 없을 때)
+const getPlaceholderImage = (index: number) => {
+  // Unsplash 또는 다른 placeholder 서비스 사용
+  return `https://picsum.photos/640/360?random=${index}`;
+};
+
 export const mockBJs: BJ[] = [
   {
     id: "bj-1",
@@ -7,7 +13,7 @@ export const mockBJs: BJ[] = [
     platform: "youtube",
     isLive: true,
     currentScore: 128500,
-    thumbnailUrl: "/thumbnails/bj1.jpg",
+    thumbnailUrl: getPlaceholderImage(1),
     channelUrl: "https://www.youtube.com/@excelking",
     streamUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
@@ -17,7 +23,7 @@ export const mockBJs: BJ[] = [
     platform: "soop",
     isLive: true,
     currentScore: 98500,
-    thumbnailUrl: "/thumbnails/bj2.jpg",
+    thumbnailUrl: getPlaceholderImage(2),
     channelUrl: "https://bjafree.soop.com/goldgoddess",
     streamUrl: "https://play.afreecatv.com/goldgoddess/123456",
   },
@@ -27,7 +33,7 @@ export const mockBJs: BJ[] = [
     platform: "panda",
     isLive: false,
     currentScore: 75400,
-    thumbnailUrl: "/thumbnails/bj3.jpg",
+    thumbnailUrl: getPlaceholderImage(3),
     channelUrl: "https://www.pandalive.co.kr/pandagod",
   },
   {
@@ -36,7 +42,7 @@ export const mockBJs: BJ[] = [
     platform: "youtube",
     isLive: true,
     currentScore: 64200,
-    thumbnailUrl: "/thumbnails/bj4.jpg",
+    thumbnailUrl: getPlaceholderImage(4),
     channelUrl: "https://www.youtube.com/@realtime",
     streamUrl: "https://www.youtube.com/watch?v=O6Dh1Q_5vLk",
   },
@@ -46,7 +52,7 @@ export const mockBJs: BJ[] = [
     platform: "soop",
     isLive: true,
     currentScore: 51200,
-    thumbnailUrl: "/thumbnails/bj5.jpg",
+    thumbnailUrl: getPlaceholderImage(5),
     channelUrl: "https://play.afreecatv.com/excelmaster",
     streamUrl: "https://play.afreecatv.com/excelmaster/987654",
   },
