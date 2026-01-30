@@ -2,7 +2,8 @@
 
 import { ReactNode, useState } from "react";
 import { BJ } from "../types/bj";
-import { X } from "lucide-react";
+import { X, MessageSquare } from "lucide-react";
+import { LiveChat } from "./live-chat";
 
 interface UniversalPlayerProps {
   bj: BJ;
@@ -24,9 +25,6 @@ function getEmbedUrl(bj: BJ): string | null {
     return bj.streamUrl;
   }
 
-  if (bj.platform === "panda") {
-    return bj.streamUrl;
-  }
 
   return null;
 }
@@ -63,28 +61,36 @@ export function UniversalPlayerTrigger({
   size = "md",
 }: UniversalPlayerTriggerProps) {
   const [open, setOpen] = useState(false);
+  const [showChat, setShowChat] = useState(true);
 
   return (
     <>
-      <button
-        type="button"
+      <div
         onClick={() => setOpen(true)}
-        className="w-full text-left"
+        className="w-full cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         {children}
-      </button>
+      </div>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div
             className={`relative w-full ${
-              size === "md" ? "max-w-4xl" : "max-w-2xl"
+              size === "md" ? "max-w-6xl" : "max-w-4xl"
             } mx-4 rounded-2xl border border-amber-500/40 bg-zinc-950/95 p-4 shadow-[0_40px_120px_rgba(0,0,0,1)]`}
           >
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/80 text-zinc-400 hover:text-zinc-100"
+              className="absolute right-3 top-3 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/80 text-zinc-400 hover:text-zinc-100"
             >
               <X className="h-4 w-4" />
             </button>
@@ -99,7 +105,26 @@ export function UniversalPlayerTrigger({
               <p className="text-[11px] text-zinc-400">{bj.name}</p>
             </div>
 
-            <UniversalPlayer bj={bj} title={title} />
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_320px]">
+              <div className="order-2 lg:order-1">
+                <UniversalPlayer bj={bj} title={title} />
+              </div>
+              {showChat && (
+                <div className="order-1 lg:order-2 h-[500px] lg:h-auto">
+                  <LiveChat bjId={bj.id} />
+                </div>
+              )}
+            </div>
+
+            {/* 채팅 토글 버튼 (모바일용) */}
+            <button
+              type="button"
+              onClick={() => setShowChat(!showChat)}
+              className="lg:hidden mt-3 w-full inline-flex items-center justify-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 transition"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{showChat ? "채팅 숨기기" : "채팅 보기"}</span>
+            </button>
           </div>
         </div>
       )}

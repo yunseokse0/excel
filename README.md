@@ -1,6 +1,6 @@
-# Excel Live Arena - 실시간 엑셀방송 팬페이지
+# 실시간 방송 리스트
 
-Next.js 14 + Tailwind CSS + shadcn/ui + Supabase로 구축한 실시간 엑셀방송 BJ 랭킹 및 라이브 스트리밍 팬페이지입니다.
+Next.js 14 + Tailwind CSS + shadcn/ui + Supabase로 구축한 YouTube와 SOOP 실시간 방송 모음 서비스입니다.
 
 ## 🚀 주요 기능
 

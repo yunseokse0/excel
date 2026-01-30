@@ -15,7 +15,7 @@ export const mockBJs: BJ[] = [
     currentScore: 128500,
     thumbnailUrl: getPlaceholderImage(1),
     channelUrl: "https://www.youtube.com/@excelking",
-    streamUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    streamUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw", // 테스트용 URL (실제 API가 작동하면 사용되지 않음)
   },
   {
     id: "bj-2",
@@ -30,7 +30,7 @@ export const mockBJs: BJ[] = [
   {
     id: "bj-3",
     name: "판다의신",
-    platform: "panda",
+    platform: "youtube",
     isLive: false,
     currentScore: 75400,
     thumbnailUrl: getPlaceholderImage(3),
@@ -62,7 +62,7 @@ export const mockRanking: RankingEntry[] = mockBJs
   .map<RankingEntry>((bj, index) => ({
     rank: index + 1,
     bj,
-    points: bj.currentScore,
+    viewerCount: 1000 * (mockBJs.length - index), // 시청자수 기반
     diffFromYesterday: index === 0 ? 1 : index === 1 ? 0 : -index,
   }))
   .sort((a, b) => a.rank - b.rank);

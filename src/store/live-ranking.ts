@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type { RankingEntry } from "../types/bj";
-import { mockRanking } from "../data/mock-bj";
 
 interface LiveRankingState {
   ranking: RankingEntry[];
@@ -11,9 +10,9 @@ interface LiveRankingState {
 }
 
 export const useLiveRankingStore = create<LiveRankingState>((set) => ({
-  ranking: mockRanking,
+  ranking: [],
   loading: true,
-  usingMock: true,
+  usingMock: false,
   setRanking: (ranking, usingMock) => set({ ranking, usingMock }),
   setLoading: (loading) => set({ loading }),
 }));

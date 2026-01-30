@@ -17,7 +17,7 @@ export function RankingTable({ ranking }: RankingTableProps) {
               <th className="px-4 py-3 text-left">순위</th>
               <th className="px-4 py-3 text-left">BJ 닉네임</th>
               <th className="px-4 py-3 text-left">플랫폼</th>
-              <th className="px-4 py-3 text-right">현재 포인트</th>
+              <th className="px-4 py-3 text-right">실시간 시청자</th>
               <th className="px-4 py-3 text-right">어제 대비</th>
             </tr>
           </thead>
@@ -52,7 +52,7 @@ export function RankingTable({ ranking }: RankingTableProps) {
                     <PlatformBadge platform={entry.bj.platform} />
                   </td>
                   <td className="px-4 py-2.5 text-right text-amber-300/90">
-                    {entry.points.toLocaleString()} pts
+                    {entry.viewerCount.toLocaleString()}명
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-2 py-1">
@@ -126,9 +126,9 @@ export function RankingTable({ ranking }: RankingTableProps) {
                 </div>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-zinc-800/70">
-                <span className="text-xs text-zinc-400">현재 포인트</span>
+                <span className="text-xs text-zinc-400">실시간 시청자</span>
                 <span className="text-sm font-semibold text-amber-300/90">
-                  {entry.points.toLocaleString()} pts
+                  {entry.viewerCount.toLocaleString()}명
                 </span>
               </div>
             </div>

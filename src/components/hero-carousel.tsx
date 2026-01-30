@@ -20,7 +20,7 @@ export function HeroCarousel({ featured, allLives }: HeroCarouselProps) {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-zinc-50">
-            오늘의 가장 뜨거운 엑셀 방송
+            인기 라이브 방송
           </h1>
           <p className="text-xs md:text-sm text-zinc-400">
             상단 캐러셀에서 바로 재생하거나 우측 카드에서 다른 방송을 선택하세요.

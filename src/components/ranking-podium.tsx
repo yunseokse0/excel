@@ -86,7 +86,7 @@ function PodiumItem({
           {entry.bj.name}
         </p>
         <p className="text-[10px] text-amber-200/90">
-          {entry.points.toLocaleString()} pts
+          {entry.viewerCount.toLocaleString()}명
         </p>
         <div className="mt-1">
           <PlatformBadge platform={entry.bj.platform} size="xs" />

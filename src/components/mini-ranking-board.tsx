@@ -1,20 +1,69 @@
+"use client";
+
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { RankingEntry } from "../types/bj";
 import { PlatformBadge } from "./platform-badge";
+import { useLiveRanking } from "../hooks/use-live-ranking";
 
 interface MiniRankingBoardProps {
-  ranking: RankingEntry[];
+  ranking?: RankingEntry[]; // Optional for backward compatibility
 }
 
-export function MiniRankingBoard({ ranking }: MiniRankingBoardProps) {
+export function MiniRankingBoard({ ranking: propRanking }: MiniRankingBoardProps) {
+  // Use hook to get real-time ranking if not provided as prop
+  const { ranking: hookRanking, loading } = useLiveRanking();
+  const ranking = propRanking || hookRanking.slice(0, 5);
+  
+  if (loading && ranking.length === 0) {
+    return (
+      <section className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-zinc-950 via-zinc-950 to-black px-4 py-4 shadow-[0_28px_80px_rgba(0,0,0,0.9)]">
+        <header className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold tracking-wide text-zinc-50">
+              실시간 시청자 TOP 5
+            </h2>
+            <p className="text-[11px] text-zinc-400">실시간 시청자수 랭킹 요약</p>
+          </div>
+          <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-[10px] font-semibold text-yellow-300 border border-yellow-400/60">
+            LIVE RANK
+          </span>
+        </header>
+        <div className="py-4 text-center">
+          <p className="text-xs text-zinc-500">랭킹을 불러오는 중...</p>
+        </div>
+      </section>
+    );
+  }
+  
+  if (ranking.length === 0) {
+    return (
+      <section className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-zinc-950 via-zinc-950 to-black px-4 py-4 shadow-[0_28px_80px_rgba(0,0,0,0.9)]">
+        <header className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold tracking-wide text-zinc-50">
+              실시간 시청자 TOP 5
+            </h2>
+            <p className="text-[11px] text-zinc-400">실시간 시청자수 랭킹 요약</p>
+          </div>
+          <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-[10px] font-semibold text-yellow-300 border border-yellow-400/60">
+            LIVE RANK
+          </span>
+        </header>
+        <div className="py-4 text-center">
+          <p className="text-xs text-zinc-500">현재 방송 중인 BJ가 없습니다.</p>
+        </div>
+      </section>
+    );
+  }
+  
   return (
     <section className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-zinc-950 via-zinc-950 to-black px-4 py-4 shadow-[0_28px_80px_rgba(0,0,0,0.9)]">
       <header className="mb-3 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold tracking-wide text-zinc-50">
-            오늘의 후원 TOP 5
+            실시간 시청자 TOP 5
           </h2>
-          <p className="text-[11px] text-zinc-400">실시간 엑셀 랭킹 요약판</p>
+          <p className="text-[11px] text-zinc-400">실시간 시청자수 랭킹 요약</p>
         </div>
         <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-[10px] font-semibold text-yellow-300 border border-yellow-400/60">
           LIVE RANK
@@ -45,7 +94,7 @@ export function MiniRankingBoard({ ranking }: MiniRankingBoardProps) {
                   </p>
                   <div className="mt-0.5 flex items-center gap-1">
                     <span className="text-[10px] text-zinc-500">
-                      {entry.points.toLocaleString()} pts
+                      {entry.viewerCount.toLocaleString()}명
                     </span>
                     <PlatformBadge platform={entry.bj.platform} size="xs" />
                   </div>

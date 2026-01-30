@@ -23,7 +23,7 @@ export function PlatformBadge({ platform, size = "sm" }: PlatformBadgeProps) {
       ? "YouTube"
       : platform === "soop"
       ? "SOOP"
-      : "Panda TV";
+      : "Unknown";
 
   return (
     <span className={`${base} ${sizeClasses[size]}`}>

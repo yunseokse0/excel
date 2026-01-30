@@ -127,7 +127,7 @@ export async function syncAllSoopLives() {
     }
 
     const results = await Promise.allSettled(
-      bjs.map((bj) => syncSoopLiveForBJ(bj.id))
+      bjs.map((bj: any) => syncSoopLiveForBJ(bj.id))
     );
 
     const successful = results.filter(

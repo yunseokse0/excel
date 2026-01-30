@@ -10,7 +10,7 @@ interface LiveStreamInfo {
   bj: {
     id: string;
     name: string;
-    platform: "youtube" | "soop" | "panda";
+    platform: "youtube" | "soop";
     isLive: boolean;
     currentScore: number;
     thumbnailUrl: string;
@@ -72,12 +72,19 @@ export default function LiveListPage() {
 
   const loadLiveList = async () => {
     try {
+      // 캐시 방지를 위한 타임스탬프 추가
+      const timestamp = Date.now();
       const url = platformFilter === "all" 
-        ? "/api/live-list"
-        : `/api/live-list?platform=${platformFilter}`;
+        ? `/api/live-list?t=${timestamp}`
+        : `/api/live-list?platform=${platformFilter}&t=${timestamp}`;
       
       console.log(`[Client] Fetching live list from: ${url}`);
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
       
       if (!res.ok) {
         const errorText = await res.text();
@@ -91,7 +98,66 @@ export default function LiveListPage() {
       }
       
       const data = await res.json();
-      console.log(`[Client] Received data:`, { success: data.success, count: data.count || data.liveList?.length || 0 });
+      const count = data.count || data.liveList?.length || 0;
+      
+      console.log(`[Client] ✅ Received data:`, { 
+        success: data.success, 
+        count,
+        hasDebug: !!data.debug,
+      });
+      
+      // 디버그 정보가 있으면 출력
+      if (data.debug) {
+        console.log(`[Client] 🔍 Debug Info:`, data.debug);
+        if (data.debug.isMock) {
+          console.warn(`[Client] ⚠️ Currently showing MOCK DATA (not real API data)`);
+          console.warn(`[Client] To get real data:`);
+          console.warn(`  1. Add YOUTUBE_API_KEY to .env.local file`);
+          console.warn(`  2. Restart the dev server (npm run dev)`);
+          console.warn(`  3. Refresh this page`);
+          if (count > 0) {
+            showToast({
+              title: "Mock 데이터 표시 중",
+              description: "현재 테스트용 mock 데이터가 표시되고 있습니다. 실제 데이터를 보려면 .env.local에 YOUTUBE_API_KEY를 추가하고 서버를 재시작하세요.",
+              variant: "info",
+            });
+          }
+        } else if (!data.debug.hasYoutubeKey) {
+          console.warn(`[Client] ⚠️ YOUTUBE_API_KEY is not set in .env.local`);
+          console.warn(`[Client] Development mode will use mock data for testing`);
+          if (count === 0) {
+            showToast({
+              title: "API 키 미설정",
+              description: "YOUTUBE_API_KEY가 없어 개발 모드에서 mock 데이터를 사용합니다. 실제 데이터를 보려면 .env.local에 API 키를 추가하세요.",
+              variant: "info",
+            });
+          }
+        } else if (data.debug.hasYoutubeKey) {
+          // API 키가 있는데 YouTube 방송이 없는 경우
+          const youtubeCount = data.liveList?.filter((item: any) => item.bj?.platform === "youtube").length || 0;
+          const soopCount = data.liveList?.filter((item: any) => item.bj?.platform === "soop").length || 0;
+          
+          console.log(`[Client] 📊 Platform breakdown: YouTube=${youtubeCount}, SOOP=${soopCount}, Total=${count}`);
+          
+          if (youtubeCount === 0 && count > 0) {
+            console.warn(`[Client] ⚠️ YouTube API key is set but no YouTube live streams found`);
+            console.warn(`[Client] Only SOOP streams are showing (${soopCount} streams)`);
+            console.warn(`[Client] Possible reasons:`);
+            console.warn(`  1. No live broadcasts currently on YouTube`);
+            console.warn(`  2. API quota exceeded (check Google Cloud Console)`);
+            console.warn(`  3. YouTube Data API v3 not enabled`);
+            console.warn(`  4. API key restrictions (IP/domain)`);
+            console.warn(`  5. Check server terminal logs for detailed errors`);
+            console.warn(`[Client] 💡 Tip: Check server terminal for "[YouTube]" logs`);
+          } else if (count === 0) {
+            console.warn(`[Client] ⚠️ API key exists but no live streams found from any platform`);
+            console.warn(`[Client] This might mean:`);
+            console.warn(`  1. No live broadcasts currently`);
+            console.warn(`  2. API quota exceeded`);
+            console.warn(`  3. Check server logs for details`);
+          }
+        }
+      }
 
       if (data.success) {
         // 이전 데이터와 비교하여 변경사항 확인
@@ -101,7 +167,9 @@ export default function LiveListPage() {
         setLiveList(data.liveList || []);
         
         if (newCount === 0) {
-          console.warn("[Client] No live streams found");
+          console.warn("[Client] ⚠️ No live streams found");
+          console.warn("[Client] Check server logs for detailed information");
+          
           if (prevCount > 0) {
             // 이전에는 있었는데 지금 없으면 알림
             showToast({
@@ -109,9 +177,16 @@ export default function LiveListPage() {
               description: "현재 방송 중인 BJ가 없습니다.",
               variant: "info",
             });
+          } else {
+            // 처음부터 없으면 더 자세한 메시지
+            showToast({
+              title: "라이브 방송 없음",
+              description: "현재 방송 중인 BJ가 없거나 API 연결에 문제가 있을 수 있습니다. 서버 로그를 확인하세요.",
+              variant: "info",
+            });
           }
         } else {
-          console.log(`[Client] Successfully loaded ${newCount} live streams (was ${prevCount})`);
+          console.log(`[Client] ✅ Successfully loaded ${newCount} live streams (was ${prevCount})`);
           // 데이터가 변경되었으면 알림 (자동 새로고침일 때만)
           if (autoRefresh && prevCount > 0 && prevCount !== newCount) {
             console.log(`[Client] Live stream count changed: ${prevCount} -> ${newCount}`);
@@ -218,10 +293,10 @@ export default function LiveListPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-50">
-              현재 방송 중인 리스트
+              인기 라이브 방송
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              YouTube와 SOOP에서 현재 방송 중인 BJ 목록입니다.
+              YouTube와 SOOP에서 지금 가장 인기 있는 라이브 방송을 만나보세요.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -323,7 +398,7 @@ export default function LiveListPage() {
               bj={item.bj}
               title={item.title}
             >
-              <div className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-950/80 overflow-hidden hover:border-amber-500/50 transition cursor-pointer">
+              <div className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-950/80 overflow-hidden hover:border-amber-500/50 transition">
                 <div className="relative aspect-video bg-zinc-900">
                   <img
                     src={item.thumbnailUrl || item.bj.thumbnailUrl || "/window.svg"}

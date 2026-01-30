@@ -109,7 +109,7 @@ export function AddBJForm({ onSuccess }: { onSuccess?: () => void }) {
             placeholder="https://www.youtube.com/@username 또는 https://bj.afreecatv.com/bjid"
           />
           <p className="mt-1 text-[10px] text-zinc-500">
-            YouTube, SOOP(아프리카TV), Panda TV URL을 입력하세요. 플랫폼은 자동으로 감지됩니다.
+            YouTube 또는 SOOP(아프리카TV) URL을 입력하세요. 플랫폼은 자동으로 감지됩니다.
           </p>
         </div>
 

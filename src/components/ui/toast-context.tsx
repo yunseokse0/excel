@@ -9,7 +9,7 @@ import {
   ReactNode,
 } from "react";
 
-type ToastVariant = "default" | "success" | "error";
+type ToastVariant = "default" | "success" | "error" | "info";
 
 interface ToastMessage {
   id: number;
@@ -60,6 +60,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   ? "border-emerald-500/50 bg-emerald-900/70 text-emerald-50"
                   : toast.variant === "error"
                   ? "border-red-500/50 bg-red-900/70 text-red-50"
+                  : toast.variant === "info"
+                  ? "border-blue-500/50 bg-blue-900/70 text-blue-50"
                   : "border-zinc-700/70 bg-zinc-900/80 text-zinc-50"
               }`}
             >

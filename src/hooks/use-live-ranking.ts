@@ -1,90 +1,52 @@
 "use client";
 
-import { useEffect } from "react";
-import type { BJ } from "../types/bj";
-import { getSupabaseBrowserClient } from "../lib/supabase-browser";
+import { useEffect, useState } from "react";
+import type { RankingEntry } from "../types/bj";
 import { useLiveRankingStore } from "../store/live-ranking";
 
-interface LiveRankingRow {
-  rank: number;
-  current_score: number;
-  diff_from_yesterday: number;
-  bj_id: string;
-  name: string;
-  platform: "youtube" | "soop" | "panda";
-  thumbnail_url: string;
-  channel_url: string;
-}
-
 export function useLiveRanking() {
-  const { ranking, loading, usingMock, setRanking, setLoading } =
-    useLiveRankingStore();
+  const { ranking, loading, setRanking, setLoading } = useLiveRankingStore();
+  const [lastUpdate, setLastUpdate] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    let intervalId: NodeJS.Timeout | null = null;
 
     async function load() {
       try {
-        const supabase = getSupabaseBrowserClient();
-        
-        // Frontend 기반 모드: Supabase가 없으면 mock 데이터 사용
-        if (!supabase) {
-          console.warn("Supabase not configured, using mock ranking.");
-          if (!cancelled) {
-            setLoading(false);
-          }
+        setLoading(true);
+        const timestamp = Date.now();
+        const res = await fetch(`/api/live-ranking?t=${timestamp}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (cancelled) return;
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`[useLiveRanking] API error: ${res.status}`, errorText);
+          setRanking([], false);
           return;
         }
 
-        const { data, error } = await supabase
-          .from("live_ranking_view")
-          .select("*")
-          .order("rank", { ascending: true });
+        const data = await res.json();
 
-        if (error) {
-          console.error("Failed to load live ranking from Supabase", error);
-          if (!cancelled) {
-            setLoading(false);
-          }
-          return;
+        if (data.success && data.ranking) {
+          setRanking(data.ranking, false);
+          setLastUpdate(Date.now());
+          console.log(`[useLiveRanking] ✅ Loaded ${data.ranking.length} ranking entries`);
+        } else {
+          console.error("[useLiveRanking] Failed to load live ranking:", data.error);
+          setRanking([], false);
         }
-
-        if (!data || cancelled) return;
-
-        const mapped = mapRowsToRankingEntries(data as LiveRankingRow[]);
-        setRanking(mapped, false);
-
-        // 실시간 구독: bj_stats 테이블이 변경되면 다시 조회
-        const channel = supabase
-          .channel("bj-stats-realtime")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "bj_stats",
-            },
-            async () => {
-              const { data: updated } = await supabase
-                .from("live_ranking_view")
-                .select("*")
-                .order("rank", { ascending: true });
-
-              if (!updated || cancelled) return;
-              setRanking(
-                mapRowsToRankingEntries(updated as LiveRankingRow[]),
-                false
-              );
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
       } catch (e) {
-        // env 미설정 등: mock 데이터 그대로 사용
-        console.warn("Supabase not configured, using mock ranking.", e);
+        console.error("[useLiveRanking] Error loading live ranking:", e);
+        if (!cancelled) {
+          setRanking([], false);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -92,35 +54,24 @@ export function useLiveRanking() {
       }
     }
 
-    const cleanupPromise = load();
+    // 초기 로드
+    void load();
+
+    // 30초마다 자동 갱신
+    intervalId = setInterval(() => {
+      if (!cancelled) {
+        console.log("[useLiveRanking] Polling for ranking updates...");
+        void load();
+      }
+    }, 30000);
 
     return () => {
       cancelled = true;
-      // load() 내부에서 생성한 채널 정리는 내부에서 처리
-      void cleanupPromise;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, []);
+  }, [setRanking, setLoading]);
 
-  return { ranking, loading, usingMock };
-}
-
-function mapRowsToRankingEntries(rows: LiveRankingRow[]) {
-  return rows.map((row) => {
-    const bj: BJ = {
-      id: row.bj_id,
-      name: row.name,
-      platform: row.platform,
-      isLive: true,
-      currentScore: row.current_score,
-      thumbnailUrl: row.thumbnail_url,
-      channelUrl: row.channel_url,
-    };
-
-    return {
-      rank: row.rank,
-      bj,
-      points: row.current_score,
-      diffFromYesterday: row.diff_from_yesterday,
-    };
-  });
+  return { ranking, loading, usingMock: false };
 }

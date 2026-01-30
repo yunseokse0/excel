@@ -17,10 +17,10 @@ export function LiveRankingBoard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-50">
-              실시간 엑셀 랭킹 보드
+              실시간 시청자 랭킹
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Supabase의 랭킹 데이터가 변경되면 즉시 반영됩니다.
+              YouTube와 SOOP 플랫폼의 실시간 시청자수 기준 랭킹입니다.
             </p>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-1">
@@ -52,7 +52,7 @@ export function LiveRankingBoard() {
       </section>
 
       <aside className="space-y-4 order-1 lg:order-2">
-        <h2 className="text-sm font-semibold text-zinc-200">오늘의 TOP 3</h2>
+        <h2 className="text-sm font-semibold text-zinc-200">실시간 시청자 TOP 3</h2>
         {showSkeleton ? (
           <div className="grid grid-cols-3 gap-2">
             {[...Array(3)].map((_, i) => (

@@ -37,7 +37,7 @@ export function useLiveNotifications() {
           schema: "public",
           table: "live_streams",
         },
-        async (payload) => {
+        async (payload: any) => {
           const newData = payload.new as any;
           const oldData = payload.old as any;
 
@@ -64,7 +64,7 @@ export function useLiveNotifications() {
                   ? "YouTube"
                   : bj.platform === "soop"
                   ? "SOOP"
-                  : "Panda TV";
+                  : "Unknown";
 
               // 토스트 알림
               showToast({

@@ -65,6 +65,7 @@ export function AdStatsDashboard() {
     if (!selectedAdId) return;
 
     async function loadDateStats() {
+      if (!selectedAdId) return; // Type guard
       const endDate = new Date().toISOString();
       const startDate = new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000
@@ -231,7 +232,7 @@ export function AdStatsDashboard() {
       </div>
 
       {/* 전체 통계 요약 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/80 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Eye className="h-4 w-4 text-blue-400" />
@@ -259,6 +260,19 @@ export function AdStatsDashboard() {
           </div>
           <p className="text-2xl font-bold text-zinc-50">
             {avgCTR.toFixed(2)}%
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs font-medium text-zinc-400">총 수익</span>
+          </div>
+          <p className="text-2xl font-bold text-emerald-300">
+            ₩{allStats.reduce((sum, stat) => sum + (stat.revenue || 0), 0).toLocaleString()}
+          </p>
+          <p className="text-[10px] text-zinc-500 mt-1">
+            CPM/CPC 기반 계산
           </p>
         </div>
       </div>
@@ -441,6 +455,7 @@ export function AdStatsDashboard() {
                 <th className="px-4 py-3 text-right">노출 수</th>
                 <th className="px-4 py-3 text-right">클릭 수</th>
                 <th className="px-4 py-3 text-right">CTR</th>
+                <th className="px-4 py-3 text-right">수익</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/70">
@@ -493,6 +508,16 @@ export function AdStatsDashboard() {
                       >
                         {stat.ctr.toFixed(2)}%
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="font-semibold text-emerald-400">
+                        {stat.revenue ? `₩${stat.revenue.toLocaleString()}` : "-"}
+                      </span>
+                      {stat.revenue && (
+                        <p className="text-[10px] text-zinc-500 mt-0.5">
+                          {stat.cpm ? `CPM: ₩${stat.cpm}` : stat.cpc ? `CPC: ₩${stat.cpc}` : ""}
+                        </p>
+                      )}
                     </td>
                   </tr>
                 );

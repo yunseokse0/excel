@@ -29,9 +29,6 @@ function detectPlatformFromUrl(channelUrl: string): Platform | null {
       return "soop";
     }
 
-    if (url.hostname.includes("pandalive.co.kr") || url.hostname.includes("panda.tv")) {
-      return "panda";
-    }
 
     return null;
   } catch {
@@ -58,7 +55,7 @@ export async function addBJ(input: AddBJInput) {
   if (!platform) {
     return {
       success: false,
-      error: "플랫폼을 자동으로 감지할 수 없습니다. YouTube, SOOP, Panda TV URL을 입력해주세요.",
+      error: "플랫폼을 자동으로 감지할 수 없습니다. YouTube 또는 SOOP(아프리카TV) URL을 입력해주세요.",
     };
   }
 

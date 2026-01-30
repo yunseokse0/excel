@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Crown, Radio, Users, Menu, X } from "lucide-react";
+import { Crown, Radio, Users, Menu, X, Video } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLiveRanking } from "../hooks/use-live-ranking";
 
@@ -25,17 +25,15 @@ export function Header() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-3 sm:px-4 py-3 sm:py-4 gap-2 sm:gap-4">
         <Link href="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0">
           <div className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-yellow-500 via-amber-400 to-yellow-300 shadow-[0_0_25px_rgba(234,179,8,0.45)]">
-            <span className="text-[10px] sm:text-xs font-black tracking-tight text-black">
-              EX
-            </span>
+            <Video className="h-4 w-4 sm:h-5 sm:w-5 text-black" />
             <span className="absolute inset-[3px] rounded-lg border border-yellow-200/40" />
           </div>
           <div className="flex flex-col hidden sm:flex">
             <span className="text-xs sm:text-sm font-semibold tracking-wide text-zinc-50">
-              Excel Live Arena
+              실시간 방송 리스트
             </span>
             <span className="text-[10px] sm:text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors">
-              실시간 엑셀 방송 팬 페이지
+              YouTube와 SOOP 실시간 방송 모음
             </span>
           </div>
         </Link>
@@ -94,7 +92,7 @@ export function Header() {
                 <span className="font-semibold">현재 1위</span>
                 <span className="text-amber-300">{top1.bj.name}</span>
                 <span className="text-[10px] text-amber-200/80">
-                  {top1.points.toLocaleString()} pts
+                  {top1.viewerCount.toLocaleString()}명
                 </span>
               </span>
             )}

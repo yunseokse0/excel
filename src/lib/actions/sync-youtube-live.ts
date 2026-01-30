@@ -126,7 +126,7 @@ export async function syncAllYouTubeLives() {
     }
 
     const results = await Promise.allSettled(
-      bjs.map((bj) => syncYouTubeLiveForBJ(bj.id))
+      bjs.map((bj: any) => syncYouTubeLiveForBJ(bj.id))
     );
 
     const successful = results.filter(

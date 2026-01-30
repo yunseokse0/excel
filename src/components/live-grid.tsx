@@ -10,11 +10,31 @@ interface LiveGridProps {
 }
 
 export function LiveGrid({ lives }: LiveGridProps) {
+  if (lives.length === 0) {
+    return (
+      <section className="space-y-4">
+        <header className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold tracking-wide text-zinc-200">
+            인기 라이브 방송
+          </h2>
+          <span className="text-[11px] text-zinc-500">
+            실시간 집계 · 방송 클릭 시 플레이어 오픈
+          </span>
+        </header>
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/80 p-12 text-center">
+          <p className="text-sm text-zinc-500">
+            현재 방송 중인 BJ가 없습니다.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-4">
       <header className="flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-zinc-200">
-          지금 라이브 중인 엑셀 방송
+          인기 라이브 방송
         </h2>
         <span className="text-[11px] text-zinc-500">
           실시간 집계 · 방송 클릭 시 플레이어 오픈

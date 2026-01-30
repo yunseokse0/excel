@@ -1,8 +1,11 @@
+"use client";
+
 import { RankingEditTable } from "../../../components/admin/ranking-edit-table";
 import { AddBJForm } from "../../../components/admin/add-bj-form";
 import { BJList } from "../../../components/admin/bj-list";
 import { AdManagement } from "../../../components/admin/ad-management";
 import { AdStatsDashboard } from "../../../components/admin/ad-stats-dashboard";
+import { BJRevenueDashboard } from "../../../components/admin/bj-revenue-dashboard";
 import { AutoFetchBJsButton } from "../../../components/admin/auto-fetch-bjs-button";
 
 export default function AdminRankingPage() {
@@ -28,6 +31,9 @@ export default function AdminRankingPage() {
       </div>
       <div className="pt-4 sm:pt-6 border-t border-zinc-800">
         <AdStatsDashboard />
+      </div>
+      <div className="pt-4 sm:pt-6 border-t border-zinc-800">
+        <BJRevenueDashboard />
       </div>
     </div>
   );

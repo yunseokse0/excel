@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { RankingEntry } from "../../types/bj";
 import { useLiveRanking } from "../../hooks/use-live-ranking";
-import { updateBJScore, bulkIncrementAllScores } from "../../lib/actions/admin";
+import { PlatformBadge } from "../platform-badge";
+import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { useToast } from "../ui/toast-context";
 import { YouTubeSyncButton } from "./youtube-sync-button";
 import { SoopSyncButton } from "./soop-sync-button";
@@ -14,94 +15,22 @@ interface RankingEditTableProps {
 
 export function RankingEditTable({ initialRanking }: RankingEditTableProps) {
   const { ranking: liveRanking, loading } = useLiveRanking();
-  const [localRanking, setLocalRanking] = useState<RankingEntry[]>(
-    initialRanking ?? liveRanking
-  );
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [bulkLoading, setBulkLoading] = useState(false);
-  const { showToast } = useToast();
-
-  const ranking = liveRanking.length ? liveRanking : localRanking;
-
-  const handleScoreChange = (bjId: string, value: number) => {
-    setLocalRanking((prev) =>
-      prev.map((entry) =>
-        entry.bj.id === bjId ? { ...entry, points: value } : entry
-      )
-    );
-  };
-
-  const handleScoreCommit = async (bjId: string, newScore: number) => {
-    setSavingId(bjId);
-    const result = await updateBJScore(bjId, newScore);
-    setSavingId(null);
-
-    if (!result.success) {
-      setLocalRanking(liveRanking);
-      showToast({
-        title: "점수 업데이트 실패",
-        description: result.error ?? "점수 업데이트에 실패했습니다.",
-        variant: "error",
-      });
-    } else {
-      showToast({
-        title: "점수가 저장되었습니다.",
-        variant: "success",
-      });
-    }
-  };
-
-  const handleBulkIncrement = async (delta: number) => {
-    setBulkLoading(true);
-    const before = [...ranking];
-    setLocalRanking((prev) =>
-      prev.map((entry) => ({
-        ...entry,
-        points: entry.points + delta,
-      }))
-    );
-
-    const result = await bulkIncrementAllScores(delta);
-    setBulkLoading(false);
-
-    if (!result.success) {
-      setLocalRanking(before);
-      showToast({
-        title: "일괄 업데이트 실패",
-        description: result.error ?? "일괄 업데이트에 실패했습니다.",
-        variant: "error",
-      });
-    } else {
-      showToast({
-        title: "모든 BJ 점수가 +1,000 되었습니다.",
-        variant: "success",
-      });
-    }
-  };
+  const ranking = liveRanking.length ? liveRanking : (initialRanking ?? []);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-            관리자 랭킹 편집
-          </h1>
-          <p className="text-sm text-zinc-400">
-            셀을 직접 수정해 점수와 순위를 빠르게 조정하세요. Enter 또는 포커스
-            아웃 시 저장됩니다.
-          </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
+              실시간 시청자 랭킹
+            </h1>
+            <p className="text-sm text-zinc-400">
+              YouTube와 SOOP 플랫폼의 실시간 시청자수 기준 랭킹입니다. 30초마다 자동으로 갱신됩니다.
+            </p>
         </div>
         <div className="flex items-center gap-2">
           <YouTubeSyncButton />
           <SoopSyncButton />
-          <button
-            type="button"
-            disabled={bulkLoading}
-            onClick={() => handleBulkIncrement(1000)}
-            className="rounded-full border border-amber-500/70 bg-amber-500/20 px-4 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/30 disabled:opacity-60"
-          >
-            모든 BJ 점수 +1,000
-          </button>
         </div>
       </div>
 
@@ -111,14 +40,16 @@ export function RankingEditTable({ initialRanking }: RankingEditTableProps) {
             <tr className="text-xs uppercase tracking-[0.16em] text-zinc-500">
               <th className="px-4 py-3 text-left">순위</th>
               <th className="px-4 py-3 text-left">BJ 닉네임</th>
-              <th className="px-4 py-3 text-right">현재 포인트</th>
+              <th className="px-4 py-3 text-left">플랫폼</th>
+              <th className="px-4 py-3 text-right">실시간 시청자</th>
+              <th className="px-4 py-3 text-right">어제 대비</th>
             </tr>
           </thead>
           <tbody>
             {loading && !ranking.length && (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={5}
                   className="px-4 py-6 text-center text-xs text-zinc-500"
                 >
                   랭킹 데이터를 불러오는 중입니다...
@@ -138,28 +69,29 @@ export function RankingEditTable({ initialRanking }: RankingEditTableProps) {
                 <td className="px-4 py-2.5">
                   <p className="font-medium">{entry.bj.name}</p>
                 </td>
+                <td className="px-4 py-2.5">
+                  <PlatformBadge platform={entry.bj.platform} size="xs" />
+                </td>
+                <td className="px-4 py-2.5 text-right text-amber-300/90">
+                  {entry.viewerCount.toLocaleString()}명
+                </td>
                 <td className="px-4 py-2.5 text-right">
-                  <input
-                    type="number"
-                    className="w-28 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-xs text-zinc-50 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/60"
-                    value={entry.points}
-                    onChange={(e) =>
-                      handleScoreChange(entry.bj.id, Number(e.target.value))
-                    }
-                    onBlur={() =>
-                      handleScoreCommit(entry.bj.id, entry.points)
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        void handleScoreCommit(entry.bj.id, entry.points);
-                      }
-                    }}
-                  />
-                  {savingId === entry.bj.id && (
-                    <span className="ml-2 text-[10px] text-zinc-500">
-                      저장 중...
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-2 py-1">
+                    {entry.diffFromYesterday > 0 && (
+                      <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
+                    )}
+                    {entry.diffFromYesterday < 0 && (
+                      <ArrowDownRight className="h-3.5 w-3.5 text-red-400" />
+                    )}
+                    {entry.diffFromYesterday === 0 && (
+                      <Minus className="h-3.5 w-3.5 text-zinc-500" />
+                    )}
+                    <span className="text-[11px] text-zinc-300">
+                      {entry.diffFromYesterday > 0 && `+${entry.diffFromYesterday}위`}
+                      {entry.diffFromYesterday < 0 && `${entry.diffFromYesterday}위`}
+                      {entry.diffFromYesterday === 0 && "변동 없음"}
                     </span>
-                  )}
+                  </div>
                 </td>
               </tr>
             ))}

@@ -9,7 +9,7 @@ import { PlatformBadge } from "../platform-badge";
 interface BJItem {
   id: string;
   name: string;
-  platform: "youtube" | "soop" | "panda";
+  platform: "youtube" | "soop";
   channel_url: string;
   thumbnail_url: string | null;
   created_at: string;

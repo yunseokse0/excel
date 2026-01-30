@@ -10,9 +10,8 @@ export async function GET(req: NextRequest) {
     const result = await syncAllSoopLives();
 
     return NextResponse.json({
-      success: result.success,
-      message: `Synced ${result.synced} out of ${result.total} SOOP BJs`,
       ...result,
+      message: `Synced ${result.synced} out of ${result.total} SOOP BJs`,
     });
   } catch (error) {
     console.error("Failed to sync SOOP lives:", error);

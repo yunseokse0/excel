@@ -11,7 +11,7 @@ interface LiveStreamInfo {
   bj: {
     id: string;
     name: string;
-    platform: "youtube" | "soop" | "panda";
+    platform: "youtube" | "soop";
     isLive: boolean;
     currentScore: number;
     thumbnailUrl: string;
@@ -85,10 +85,10 @@ export default function LiveListPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-            현재 방송 중인 리스트
+            인기 라이브 방송
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
-            YouTube와 SOOP에서 현재 방송 중인 BJ 목록입니다.
+            YouTube와 SOOP에서 지금 가장 인기 있는 라이브 방송을 확인하세요.
           </p>
         </div>
         <div className="flex items-center gap-2">

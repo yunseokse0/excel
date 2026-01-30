@@ -1,4 +1,4 @@
-export type Platform = "youtube" | "soop" | "panda";
+export type Platform = "youtube" | "soop";
 
 export interface BJ {
   id: string;
@@ -14,8 +14,11 @@ export interface BJ {
 export interface RankingEntry {
   rank: number;
   bj: BJ;
-  points: number;
-  diffFromYesterday: number;
+  viewerCount: number; // 실시간 시청자 수
+  diffFromYesterday: number; // 어제 대비 순위 변동
+  donationRevenue?: number; // 도네이션 수익 (원)
+  superchatRevenue?: number; // 슈퍼챗 수익 (원)
+  totalRevenue?: number; // 총 수익 (원)
 }
 
 export interface LiveEntry {
@@ -23,5 +26,12 @@ export interface LiveEntry {
   title: string;
   viewerCount?: number;
   startedAt?: string;
+  /** Detected categories for this stream (multiple categories possible) */
+  detectedCategories?: Array<{
+    categoryId: string;
+    score: number;
+  }>;
+  /** Primary category ID (highest confidence) */
+  primaryCategoryId?: string;
 }
 

@@ -25,6 +25,8 @@ export function AdManagement() {
     startDate: "",
     endDate: "",
     displayOrder: "0",
+    cpm: "",
+    cpc: "",
     abTestGroup: "",
     abTestVariant: "A" as "A" | "B",
     abTestWeight: "50",
@@ -63,6 +65,8 @@ export function AdManagement() {
           startDate: formData.startDate || undefined,
           endDate: formData.endDate || undefined,
           displayOrder: parseInt(formData.displayOrder, 10),
+          cpm: formData.cpm ? parseFloat(formData.cpm) : undefined,
+          cpc: formData.cpc ? parseFloat(formData.cpc) : undefined,
           abTestGroup: formData.abTestGroup || undefined,
           abTestVariant: formData.abTestVariant,
           abTestWeight: parseInt(formData.abTestWeight, 10),
@@ -86,6 +90,8 @@ export function AdManagement() {
           startDate: formData.startDate || undefined,
           endDate: formData.endDate || undefined,
           displayOrder: parseInt(formData.displayOrder, 10),
+          cpm: formData.cpm ? parseFloat(formData.cpm) : undefined,
+          cpc: formData.cpc ? parseFloat(formData.cpc) : undefined,
           abTestGroup: formData.abTestGroup || undefined,
           abTestVariant: formData.abTestVariant,
           abTestWeight: parseInt(formData.abTestWeight, 10),
@@ -116,10 +122,12 @@ export function AdManagement() {
         isActive: true,
         startDate: "",
         endDate: "",
-        displayOrder: "0",
-        abTestGroup: "",
-        abTestVariant: "A",
-        abTestWeight: "50",
+      displayOrder: "0",
+      cpm: "",
+      cpc: "",
+      abTestGroup: "",
+      abTestVariant: "A",
+      abTestWeight: "50",
         targetPages: "",
         targetUserGroups: "",
         scheduleDays: [],
@@ -148,11 +156,17 @@ export function AdManagement() {
       startDate: ad.startDate ? ad.startDate.split("T")[0] : "",
       endDate: ad.endDate ? ad.endDate.split("T")[0] : "",
       displayOrder: ad.displayOrder.toString(),
+      cpm: ad.cpm?.toString() || "",
+      cpc: ad.cpc?.toString() || "",
       abTestGroup: ad.abTestGroup || "",
       abTestVariant: ad.abTestVariant || "A",
       abTestWeight: ad.abTestWeight?.toString() || "50",
       targetPages: ad.targetPages?.join(", ") || "",
       targetUserGroups: ad.targetUserGroups?.join(", ") || "",
+      scheduleDays: ad.scheduleDays || [],
+      scheduleStartTime: ad.scheduleStartTime || "",
+      scheduleEndTime: ad.scheduleEndTime || "",
+      timezone: ad.timezone || "Asia/Seoul",
     });
     setIsFormOpen(true);
   };
@@ -251,7 +265,18 @@ export function AdManagement() {
               isActive: true,
               startDate: "",
               endDate: "",
-              displayOrder: "0",
+      displayOrder: "0",
+      cpm: "",
+      cpc: "",
+      abTestGroup: "",
+      abTestVariant: "A",
+      abTestWeight: "50",
+              targetPages: "",
+              targetUserGroups: "",
+              scheduleDays: [],
+              scheduleStartTime: "",
+              scheduleEndTime: "",
+              timezone: "Asia/Seoul",
             });
           }}
           className="inline-flex items-center gap-2 rounded-full border border-emerald-500/70 bg-emerald-500/20 px-4 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/30 transition"
@@ -353,6 +378,48 @@ export function AdManagement() {
               className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-amber-500"
               placeholder="https://..."
             />
+          </div>
+
+          {/* 수익 설정 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                CPM (천 노출당 비용, 원)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.cpm}
+                onChange={(e) =>
+                  setFormData({ ...formData, cpm: e.target.value })
+                }
+                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-amber-500"
+                placeholder="예: 1000"
+              />
+              <p className="text-[10px] text-zinc-500 mt-1">
+                노출 기반 수익 계산
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                CPC (클릭당 비용, 원)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.cpc}
+                onChange={(e) =>
+                  setFormData({ ...formData, cpc: e.target.value })
+                }
+                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-amber-500"
+                placeholder="예: 50"
+              />
+              <p className="text-[10px] text-zinc-500 mt-1">
+                클릭 기반 수익 계산
+              </p>
+            </div>
           </div>
 
           <div>

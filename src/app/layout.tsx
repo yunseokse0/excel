@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Real-time Excel 방송 팬페이지",
-  description: "실시간 엑셀방송 BJ 랭킹과 라이브를 한눈에.",
+  title: "실시간 방송 리스트",
+  description: "YouTube와 SOOP 실시간 방송을 한눈에. 실시간 시청자수 기준 랭킹과 라이브 스트리밍.",
 };
 
 export default function RootLayout({

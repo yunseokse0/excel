@@ -13,6 +13,8 @@ interface CreateAdInput {
   startDate?: string;
   endDate?: string;
   displayOrder?: number;
+  cpm?: number; // Cost Per Mille (천 노출당 비용, 원)
+  cpc?: number; // Cost Per Click (클릭당 비용, 원)
   abTestGroup?: string;
   abTestVariant?: "A" | "B";
   abTestWeight?: number;
@@ -45,6 +47,8 @@ export async function createAd(input: CreateAdInput) {
       start_date: input.startDate || null,
       end_date: input.endDate || null,
       display_order: input.displayOrder ?? 0,
+      cpm: input.cpm || null,
+      cpc: input.cpc || null,
       ab_test_group: input.abTestGroup || null,
       ab_test_variant: input.abTestVariant || null,
       ab_test_weight: input.abTestWeight ?? 50,
@@ -90,6 +94,8 @@ export async function updateAd(adId: string, input: Partial<CreateAdInput>) {
   if (input.startDate !== undefined) updateData.start_date = input.startDate || null;
   if (input.endDate !== undefined) updateData.end_date = input.endDate || null;
   if (input.displayOrder !== undefined) updateData.display_order = input.displayOrder;
+  if (input.cpm !== undefined) updateData.cpm = input.cpm || null;
+  if (input.cpc !== undefined) updateData.cpc = input.cpc || null;
   if (input.abTestGroup !== undefined) updateData.ab_test_group = input.abTestGroup || null;
   if (input.abTestVariant !== undefined) updateData.ab_test_variant = input.abTestVariant || null;
   if (input.abTestWeight !== undefined) updateData.ab_test_weight = input.abTestWeight;

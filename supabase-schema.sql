@@ -43,6 +43,9 @@ create table if not exists public.bj_stats (
   current_score integer not null default 0,
   rank integer not null default 9999,
   diff_from_yesterday integer not null default 0,
+  -- 수익 관련 필드
+  donation_revenue numeric(12, 2) default 0, -- 도네이션 수익 (원)
+  superchat_revenue numeric(12, 2) default 0, -- 슈퍼챗 수익 (원)
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
@@ -54,6 +57,8 @@ select
   s.rank,
   s.current_score,
   s.diff_from_yesterday,
+  s.donation_revenue,
+  s.superchat_revenue,
   b.id as bj_id,
   b.name,
   b.platform,
@@ -186,6 +191,9 @@ create table if not exists public.ads (
   display_order integer not null default 0,
   click_count integer not null default 0,
   impression_count integer not null default 0, -- 노출 수
+  -- 수익 관련 필드
+  cpm numeric(10, 2), -- Cost Per Mille (천 노출당 비용, 원)
+  cpc numeric(10, 2), -- Cost Per Click (클릭당 비용, 원)
   -- A/B 테스트용
   ab_test_group text, -- A/B 테스트 그룹 ID (같은 그룹의 광고들은 함께 테스트)
   ab_test_variant text, -- 'A' 또는 'B'

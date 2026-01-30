@@ -112,17 +112,27 @@ export async function getAllAdsStats(): Promise<AdStats[]> {
   try {
     const { data: ads, error } = await supabase
       .from("ads")
-      .select("id, click_count, impression_count")
+      .select("id, click_count, impression_count, cpm, cpc")
       .order("impression_count", { ascending: false });
 
     if (error || !ads) {
       return [];
     }
 
-    return ads.map((ad) => {
+    return ads.map((ad: any) => {
       const impressions = ad.impression_count || 0;
       const clicks = ad.click_count || 0;
       const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const cpm = ad.cpm || null;
+      const cpc = ad.cpc || null;
+      
+      // 수익 계산: CPM 우선, 없으면 CPC 사용
+      let revenue = 0;
+      if (cpm && impressions > 0) {
+        revenue = (impressions / 1000) * cpm; // CPM: 천 노출당 비용
+      } else if (cpc && clicks > 0) {
+        revenue = clicks * cpc; // CPC: 클릭당 비용
+      }
 
       return {
         adId: ad.id,
@@ -130,6 +140,9 @@ export async function getAllAdsStats(): Promise<AdStats[]> {
         clicks,
         ctr: Math.round(ctr * 100) / 100,
         views: impressions,
+        revenue: Math.round(revenue),
+        cpm,
+        cpc,
       };
     });
   } catch (error) {
@@ -149,8 +162,9 @@ export async function getAdStatsByDate(
   const supabase = getSupabaseServerClient();
   if (!supabase) return []; // Frontend 기반 모드
 
+  let logs: any[] = [];
   try {
-    const { data: logs, error } = await supabase
+    const { data, error } = await supabase
       .from("ad_stats_logs")
       .select("event_type, created_at")
       .eq("ad_id", adId)
@@ -158,9 +172,10 @@ export async function getAdStatsByDate(
       .lte("created_at", endDate)
       .order("created_at", { ascending: true });
 
-    if (error || !logs) {
+    if (error || !data) {
       return [];
     }
+    logs = data;
   } catch (error) {
     console.warn("Failed to get ad stats by date:", error);
     return [];
@@ -170,7 +185,7 @@ export async function getAdStatsByDate(
   const statsByDate: Record<string, { impressions: number; clicks: number }> =
     {};
 
-  logs.forEach((log) => {
+  logs.forEach((log: any) => {
     const date = new Date(log.created_at).toISOString().split("T")[0];
     if (!statsByDate[date]) {
       statsByDate[date] = { impressions: 0, clicks: 0 };

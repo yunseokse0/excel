@@ -25,9 +25,8 @@ export async function GET(req: NextRequest) {
     const result = await syncAllYouTubeLives();
 
     return NextResponse.json({
-      success: result.success,
-      message: `Synced ${result.synced} out of ${result.total} YouTube BJs`,
       ...result,
+      message: `Synced ${result.synced} out of ${result.total} YouTube BJs`,
     });
   } catch (error) {
     console.error("Failed to sync YouTube lives:", error);
