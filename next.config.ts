@@ -4,14 +4,9 @@ const nextConfig: NextConfig = {
   // 프로덕션에서 브라우저 소스맵 비활성화 (소스 코드 노출 방지)
   productionBrowserSourceMaps: false,
   
-  // 컴파일러 옵션: 소스맵 비활성화
-  webpack: (config, { dev, isServer }) => {
-    if (!dev && !isServer) {
-      // 프로덕션 빌드에서 클라이언트 사이드 소스맵 비활성화
-      config.devtool = false;
-    }
-    return config;
-  },
+  // Turbopack 설정 (Next.js 16 기본값)
+  // webpack 설정 대신 빈 turbopack 설정으로 에러 방지
+  turbopack: {},
   
   images: {
     remotePatterns: [
