@@ -365,17 +365,24 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
     // 카테고리 룰 엔진으로 필터링
     const defaultCategory = getActiveCategoryRules().find(r => r.id === DEFAULT_CATEGORY_ID);
     
-    // 더 많은 방송을 가져오기 위해 검색어 확장
+    // 더 많은 방송을 가져오기 위해 검색어 대폭 확장
     const searchQueries = [
       // 엑셀 방송 관련 검색어 (우선순위)
       ...(defaultCategory ? [
         { q: "엑셀 방송", regionCode: "KR", relevanceLanguage: "ko" },
         { q: "엑셀 라이브", regionCode: "KR", relevanceLanguage: "ko" },
         { q: "엑셀", regionCode: "KR", relevanceLanguage: "ko" },
+        { q: "엑셀 강의", regionCode: "KR", relevanceLanguage: "ko" },
+        { q: "엑셀 튜토리얼", regionCode: "KR", relevanceLanguage: "ko" },
       ] : []),
       // 일반 라이브 검색어 추가 (더 많은 방송 수집)
       { q: "라이브", regionCode: "KR", relevanceLanguage: "ko" },
       { q: "방송", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "생방송", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "실시간", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "게임", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "음악", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "토크", regionCode: "KR", relevanceLanguage: "ko" },
     ];
     
     let allVideoItems: any[] = [];
@@ -385,7 +392,7 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
       searchUrl.searchParams.set("part", "snippet");
       searchUrl.searchParams.set("eventType", "live");
       searchUrl.searchParams.set("type", "video");
-      // 더 많은 결과를 가져오기 위해 maxResults 증가 (최대 50)
+      // 더 많은 결과를 가져오기 위해 maxResults 최대값 사용
       searchUrl.searchParams.set("maxResults", "50");
       searchUrl.searchParams.set("order", "viewCount");
       if (searchConfig.q) {
@@ -425,8 +432,8 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
           allVideoItems.push(...newItems);
           console.log(`[YouTube] Added ${newItems.length} new videos (total: ${allVideoItems.length})`);
           
-          // 더 많은 결과를 수집하기 위해 중단 조건 완화 (최소 20개 이상)
-          if (allVideoItems.length >= 20) {
+          // 더 많은 결과를 수집하기 위해 중단 조건 완화 (최소 50개 이상)
+          if (allVideoItems.length >= 50) {
             console.log(`[YouTube] ✅ Got enough results (${allVideoItems.length}), stopping search to save quota`);
             break;
           }
@@ -960,9 +967,16 @@ async function fetchYouTubeLiveStreamsWithScraper(): Promise<LiveStreamInfo[]> {
       "엑셀 방송",
       "엑셀 라이브",
       "엑셀",
+      "엑셀 강의",
+      "엑셀 튜토리얼",
       "라이브",
       "방송",
-    ] : ["라이브", "방송"];
+      "생방송",
+      "실시간",
+      "게임",
+      "음악",
+      "토크",
+    ] : ["라이브", "방송", "생방송", "실시간", "게임", "음악", "토크"];
 
     const allStreams: LiveStreamInfo[] = [];
 
@@ -1057,8 +1071,8 @@ async function fetchSoopLiveStreams(): Promise<LiveStreamInfo[]> {
     // API 엔드포인트 시도 (마지막 시도)
     console.log("[SOOP] 🔄 Step 3: Trying API endpoints...");
     const apiEndpoints = [
-      // 인기 방송 목록 (가장 가능성 높음) - 더 많은 방송을 가져오기 위해 per_page 증가
-      "https://live.afreecatv.com/afreeca/player_live_api.php?bjid=&type=live&page=1&per_page=200",
+      // 인기 방송 목록 (가장 가능성 높음) - 더 많은 방송을 가져오기 위해 per_page 최대값 사용
+      "https://live.afreecatv.com/afreeca/player_live_api.php?bjid=&type=live&page=1&per_page=300",
       // 대체 엔드포인트들
       "https://live.afreecatv.com/api/main/broad_list",
       "https://bjapi.afreecatv.com/api/main/broad_list",
@@ -1517,20 +1531,28 @@ async function fetchSoopLiveStreamsFromHTML(): Promise<LiveStreamInfo[]> {
     const liveStreams: LiveStreamInfo[] = [];
     
     // 아프리카TV 페이지의 라이브 방송 카드 선택자 (실제 구조에 맞게 조정 필요)
-    // 다양한 선택자 시도
+    // 다양한 선택자 시도 (더 포괄적으로)
     const selectors = [
       ".live-item",
       ".broad-item", 
       "[data-broad-state='ON_AIR']",
       "[data-broad-state='LIVE']",
+      "[data-broad-state]",  // 상태가 있는 모든 요소
       ".broadcast-item",
       ".stream-item",
       ".live-broadcast",
       "article[data-broad-no]",
       "div[data-broad-no]",
       "a[href*='/play.afreecatv.com/']",
+      "a[href*='play.afreecatv.com']",  // 슬래시 없이도 매칭
       ".live-card",
       ".broad-card",
+      "[data-user-id]",  // user_id가 있는 모든 요소
+      "[data-bj-id]",  // bj_id가 있는 모든 요소
+      ".live-list-item",
+      ".broadcast-list-item",
+      "li[data-broad-no]",
+      "div[data-user-id]",
     ];
     
     let foundElements = false;
@@ -1544,31 +1566,69 @@ async function fetchSoopLiveStreamsFromHTML(): Promise<LiveStreamInfo[]> {
         elements.each((_: any, element: any) => {
           try {
             const $el = $(element);
-            const userId = $el.attr("data-user-id") || $el.find("[data-user-id]").attr("data-user-id") || "";
-            const userNick = $el.find(".nickname, .user-nick, .bj-name").text().trim() || userId;
-            const broadNo = $el.attr("data-broad-no") || $el.find("[data-broad-no]").attr("data-broad-no") || "";
-            const title = $el.find(".title, .broad-title").text().trim() || `${userNick}의 방송`;
-            const thumbnail = $el.find("img").attr("src") || $el.find("img").attr("data-src") || "";
-            const viewerCountText = $el.find(".viewer, .viewer-count").text().trim();
+            
+            // 더 많은 속성에서 userId 추출 시도
+            const userId = $el.attr("data-user-id") || 
+                          $el.attr("data-bj-id") || 
+                          $el.attr("data-bjid") ||
+                          $el.find("[data-user-id]").attr("data-user-id") || 
+                          $el.find("[data-bj-id]").attr("data-bj-id") ||
+                          "";
+            
+            // 더 많은 속성에서 broadNo 추출 시도
+            const broadNo = $el.attr("data-broad-no") || 
+                           $el.attr("data-broadcast-no") ||
+                           $el.attr("data-broadno") ||
+                           $el.find("[data-broad-no]").attr("data-broad-no") || 
+                           $el.find("[data-broadcast-no]").attr("data-broadcast-no") ||
+                           "";
+            
+            // href에서도 추출 시도
+            const href = $el.attr("href") || $el.find("a").first().attr("href") || "";
+            let extractedUserId = userId;
+            let extractedBroadNo = broadNo;
+            
+            if (href && (!userId || !broadNo)) {
+              const hrefMatch = href.match(/play\.afreecatv\.com\/([^\/]+)\/(\d+)/);
+              if (hrefMatch) {
+                extractedUserId = extractedUserId || hrefMatch[1];
+                extractedBroadNo = extractedBroadNo || hrefMatch[2];
+              }
+            }
+            
+            // 텍스트에서도 추출 시도 (마지막 수단)
+            if (!extractedUserId || !extractedBroadNo) {
+              const text = $el.text();
+              const textMatch = text.match(/play\.afreecatv\.com\/([^\/\s]+)\/(\d+)/);
+              if (textMatch) {
+                extractedUserId = extractedUserId || textMatch[1];
+                extractedBroadNo = extractedBroadNo || textMatch[2];
+              }
+            }
+            
+            const userNick = $el.find(".nickname, .user-nick, .bj-name, .broadcaster-name").text().trim() || extractedUserId;
+            const title = $el.find(".title, .broad-title, .broadcast-title").text().trim() || `${userNick}의 방송`;
+            const thumbnail = $el.find("img").attr("src") || $el.find("img").attr("data-src") || $el.find("img").attr("data-lazy-src") || "";
+            const viewerCountText = $el.find(".viewer, .viewer-count, .view-count").text().trim();
             const viewerCount = viewerCountText ? parseInt(viewerCountText.replace(/[^0-9]/g, ""), 10) : undefined;
             
-            if (userId && broadNo) {
+            if (extractedUserId && extractedBroadNo && !liveStreams.some(s => s.bj.id === `soop-${extractedUserId}-${extractedBroadNo}`)) {
               liveStreams.push({
                 bj: {
-                  id: `soop-${userId}-${broadNo}`,
-                  name: userNick || userId,
+                  id: `soop-${extractedUserId}-${extractedBroadNo}`,
+                  name: userNick || extractedUserId,
                   platform: "soop",
                   isLive: true,
                   currentScore: 0,
-                  thumbnailUrl: thumbnail || `https://snapshot.afreecatv.com/live/snapshot/${broadNo}.jpg`,
-                  channelUrl: `https://bj.afreecatv.com/${userId}`,
-                  streamUrl: `https://play.afreecatv.com/${userId}/${broadNo}`,
+                  thumbnailUrl: thumbnail || `https://snapshot.afreecatv.com/live/snapshot/${extractedBroadNo}.jpg`,
+                  channelUrl: `https://bj.afreecatv.com/${extractedUserId}`,
+                  streamUrl: `https://play.afreecatv.com/${extractedUserId}/${extractedBroadNo}`,
                 },
                 isLive: true,
                 title,
                 thumbnailUrl: thumbnail || undefined,
                 viewerCount,
-                streamUrl: `https://play.afreecatv.com/${userId}/${broadNo}`,
+                streamUrl: `https://play.afreecatv.com/${extractedUserId}/${extractedBroadNo}`,
                 startedAt: undefined,
               });
             }
@@ -1587,7 +1647,7 @@ async function fetchSoopLiveStreamsFromHTML(): Promise<LiveStreamInfo[]> {
     if (liveStreams.length === 0) {
       console.log("[SOOP] Trying URL pattern matching...");
       
-      // 다양한 URL 패턴 시도
+      // 다양한 URL 패턴 시도 (더 포괄적으로)
       const urlPatterns = [
         /https?:\/\/play\.afreecatv\.com\/([^\/"'\s<>]+)\/(\d+)/g,
         /play\.afreecatv\.com\/([^\/"'\s<>]+)\/(\d+)/g,
@@ -1596,6 +1656,12 @@ async function fetchSoopLiveStreamsFromHTML(): Promise<LiveStreamInfo[]> {
         /data-url=["']([^"']*play\.afreecatv\.com\/[^"']+)["']/g,
         /data-href=["']([^"']*play\.afreecatv\.com\/[^"']+)["']/g,
         /url\(["']?([^"')]*play\.afreecatv\.com[^"')]+)["']?\)/g,
+        // 더 많은 패턴 추가
+        /\/live\/([^\/"'\s<>]+)\/(\d+)/g,
+        /\/broad\/([^\/"'\s<>]+)\/(\d+)/g,
+        /bjid["']?\s*[:=]\s*["']?([^"'\s<>]+)["']?/g,
+        /broad_no["']?\s*[:=]\s*["']?(\d+)["']?/g,
+        /user_id["']?\s*[:=]\s*["']?([^"'\s<>]+)["']?/g,
       ];
       
       const foundUrls = new Set<string>();
