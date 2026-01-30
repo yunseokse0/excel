@@ -7,9 +7,10 @@ import { UniversalPlayerTrigger } from "./universal-player";
 
 interface LiveGridProps {
   lives: LiveEntry[];
+  quotaExceeded?: boolean;
 }
 
-export function LiveGrid({ lives }: LiveGridProps) {
+export function LiveGrid({ lives, quotaExceeded = false }: LiveGridProps) {
   if (lives.length === 0) {
     return (
       <section className="space-y-4">
@@ -22,9 +23,35 @@ export function LiveGrid({ lives }: LiveGridProps) {
           </span>
         </header>
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/80 p-12 text-center">
-          <p className="text-sm text-zinc-500">
-            현재 방송 중인 BJ가 없습니다.
-          </p>
+          {quotaExceeded ? (
+            <div className="space-y-3">
+              <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="space-y-2">
+                <p className="text-base font-semibold text-amber-400">
+                  YouTube API 할당량 초과
+                </p>
+                <p className="text-sm text-zinc-400 max-w-md mx-auto">
+                  YouTube API 일일 할당량이 초과되었습니다. 24시간 후 자동으로 재시도됩니다.
+                </p>
+                <div className="mt-4 text-xs text-zinc-500 space-y-1">
+                  <p>💡 해결 방법:</p>
+                  <ul className="list-disc list-inside space-y-1 text-left max-w-sm mx-auto">
+                    <li>Google Cloud Console에서 할당량 증가 요청</li>
+                    <li>추가 API 키 생성 및 사용</li>
+                    <li>SOOP 방송은 정상적으로 표시됩니다</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-500">
+              현재 방송 중인 BJ가 없습니다.
+            </p>
+          )}
         </div>
       </section>
     );
