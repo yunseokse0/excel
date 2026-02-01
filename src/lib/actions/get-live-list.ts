@@ -288,32 +288,37 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
     const allScrapedVideos: any[] = [];
     const seenVideoIds = new Set<string>();
     
-    // 각 검색어로 스크래핑
-    for (const query of searchQueries) {
+    // 병렬 스크래핑으로 성능 개선
+    console.log(`[YouTube] 🚀 Starting parallel scraping for ${searchQueries.length} queries...`);
+    const startTime = Date.now();
+    
+    const scrapePromises = searchQueries.map(async (query) => {
       try {
         console.log(`[YouTube] 🔍 Scraping live streams for: "${query}"`);
         const scraped = await scrapeYouTubeLiveSearch(query);
-        
-        // 중복 제거
-        for (const video of scraped) {
-          if (!seenVideoIds.has(video.videoId)) {
-            seenVideoIds.add(video.videoId);
-            allScrapedVideos.push(video);
-          }
-        }
-        
-        console.log(`[YouTube] ✅ Found ${scraped.length} streams for "${query}" (total: ${allScrapedVideos.length})`);
-        
-        // 충분한 결과가 있으면 중단
-        if (allScrapedVideos.length >= 50) {
-          console.log(`[YouTube] ✅ Got enough results (${allScrapedVideos.length}), stopping search`);
-          break;
-        }
+        return { query, scraped, success: true };
       } catch (error) {
         console.warn(`[YouTube] ⚠️ Failed to scrape "${query}":`, error);
-        continue;
+        return { query, scraped: [], success: false };
+      }
+    });
+    
+    // 모든 스크래핑 작업을 병렬로 실행
+    const results = await Promise.all(scrapePromises);
+    
+    // 결과 병합 및 중복 제거
+    for (const { scraped } of results) {
+      for (const video of scraped) {
+        if (!seenVideoIds.has(video.videoId)) {
+          seenVideoIds.add(video.videoId);
+          allScrapedVideos.push(video);
+        }
       }
     }
+    
+    const duration = Date.now() - startTime;
+    console.log(`[YouTube] ✅ Parallel scraping completed in ${duration}ms`);
+    console.log(`[YouTube] 📊 Total unique streams: ${allScrapedVideos.length}`);
     
     if (allScrapedVideos.length === 0) {
       console.warn("[YouTube] ⚠️ No live streams found from scraping");

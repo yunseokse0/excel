@@ -88,10 +88,44 @@ export async function GET(req: NextRequest) {
       totalAfterFilter: result.liveList.length,
     };
 
+    // 랭킹 데이터도 함께 계산하여 중복 스크래핑 방지
+    let ranking: any[] = [];
+    if (result.liveList.length > 0) {
+      const sorted = [...result.liveList].sort((a: any, b: any) => {
+        const aViewers = a.viewerCount || 0;
+        const bViewers = b.viewerCount || 0;
+        return bViewers - aViewers;
+      });
+      
+      let currentRank = 1;
+      let previousViewers: number | undefined = undefined;
+      
+      for (let i = 0; i < sorted.length; i++) {
+        const item = sorted[i];
+        const viewers = item.viewerCount || 0;
+        
+        if (viewers === 0) continue;
+        
+        if (previousViewers !== undefined && viewers !== previousViewers) {
+          currentRank = ranking.length + 1;
+        }
+        
+        ranking.push({
+          rank: currentRank,
+          bj: item.bj,
+          viewerCount: viewers,
+          diffFromYesterday: 0,
+        });
+        
+        previousViewers = viewers;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       count: result.liveList.length,
       liveList: result.liveList,
+      ranking, // 랭킹 데이터도 함께 반환
       // 디버그 정보 (개발 환경에서만)
       ...(process.env.NODE_ENV === "development" ? {
         debug: {

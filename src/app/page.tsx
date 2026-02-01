@@ -6,6 +6,7 @@ import { LiveGrid } from "../components/live-grid";
 import { MiniRankingBoard } from "../components/mini-ranking-board";
 import type { LiveEntry } from "../types/bj";
 import { Skeleton } from "../components/ui/skeleton";
+import { useLiveRankingStore } from "../store/live-ranking";
 
 export default function HomePage() {
   const [liveList, setLiveList] = useState<LiveEntry[]>([]);
@@ -54,6 +55,13 @@ export default function HomePage() {
         if (data.success && data.liveList) {
           const allStreams = data.liveList;
           console.log(`[HomePage] 📺 Total streams: ${allStreams.length}`);
+          
+          // 랭킹 데이터가 함께 오면 전역 상태에 저장 (중복 API 호출 방지)
+          if (data.ranking && Array.isArray(data.ranking)) {
+            console.log(`[HomePage] 📊 Received ranking data: ${data.ranking.length} entries`);
+            // 랭킹 스토어에 직접 업데이트 (useLiveRanking 훅이 자동으로 감지)
+            useLiveRankingStore.getState().setRanking(data.ranking, false);
+          }
           
           // 디버그 정보 표시
           if (data.debug) {

@@ -14,6 +14,13 @@ export function useLiveRanking() {
 
     async function load() {
       try {
+        // 랭킹이 이미 로드되어 있고 최근에 업데이트되었다면 스킵
+        const currentRanking = useLiveRankingStore.getState().ranking;
+        if (currentRanking.length > 0 && Date.now() - lastUpdate < 5000) {
+          console.log(`[useLiveRanking] ⏭️ Skipping - ranking already loaded recently`);
+          return;
+        }
+
         setLoading(true);
         const timestamp = Date.now();
         const res = await fetch(`/api/live-ranking?t=${timestamp}`, {
@@ -54,10 +61,14 @@ export function useLiveRanking() {
       }
     }
 
-    // 초기 로드
-    void load();
+    // 초기 로드 (약간의 지연을 두어 live-list API가 먼저 실행되도록)
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        void load();
+      }
+    }, 500);
 
-    // 30초마다 자동 갱신
+    // 30초마다 자동 갱신 (live-list와 동기화)
     intervalId = setInterval(() => {
       if (!cancelled) {
         console.log("[useLiveRanking] Polling for ranking updates...");
@@ -67,11 +78,12 @@ export function useLiveRanking() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
-  }, [setRanking, setLoading]);
+  }, [setRanking, setLoading, lastUpdate]);
 
   return { ranking, loading, usingMock: false };
 }
