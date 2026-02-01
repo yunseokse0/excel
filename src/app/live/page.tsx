@@ -40,14 +40,14 @@ export default function LivePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-            인기 라이브 방송
-          </h1>
-          <p className="text-sm text-zinc-400">
-            지금 가장 인기 있는 라이브 방송을 플랫폼 구분 없이 한눈에 만나보세요.
-          </p>
-        </header>
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
+          커뮤니티
+        </h1>
+        <p className="text-sm text-zinc-400">
+          실시간 방송 중인 BJ들을 카드 형태로 만나보세요
+        </p>
+      </header>
         <div className="flex items-center justify-center py-12">
           <p className="text-sm text-zinc-500">라이브 방송 목록을 불러오는 중...</p>
         </div>
@@ -57,12 +57,12 @@ export default function LivePage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
+      <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-          전체 라이브 목록
+          커뮤니티
         </h1>
         <p className="text-sm text-zinc-400">
-          현재 방송 중인 모든 BJ를 플랫폼 구분 없이 한눈에 볼 수 있습니다.
+          실시간 방송 중인 BJ들을 카드 형태로 만나보세요
         </p>
       </header>
       <LiveGrid lives={liveList} />

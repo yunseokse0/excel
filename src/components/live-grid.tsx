@@ -61,22 +61,22 @@ export function LiveGrid({ lives, quotaExceeded = false }: LiveGridProps) {
     <section className="space-y-4">
       <header className="flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-zinc-200">
-          인기 라이브 방송
+          라이브 방송 카드
         </h2>
         <span className="text-[11px] text-zinc-500">
           실시간 집계 · 방송 클릭 시 플레이어 오픈
         </span>
       </header>
 
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {lives.map((live) => (
           <UniversalPlayerTrigger
             key={live.bj.id}
             bj={live.bj}
             title={live.title}
           >
-            <article className="group relative overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-950/60 p-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.70)] transition-transform transition-shadow hover:-translate-y-1 hover:shadow-[0_25px_70px_rgba(0,0,0,0.9)]">
-              <div className="relative aspect-video overflow-hidden rounded-xl">
+            <article className="group relative overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-950/80 p-3 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-500/10">
+              <div className="relative aspect-video overflow-hidden rounded-xl mb-3 bg-zinc-900">
                 <Image
                   src={live.bj.thumbnailUrl || "/window.svg"}
                   alt={live.bj.name}
@@ -88,26 +88,28 @@ export function LiveGrid({ lives, quotaExceeded = false }: LiveGridProps) {
                     target.src = "/window.svg";
                   }}
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5">
-                  <span className="inline-flex items-center rounded-full bg-red-600 px-2 py-[2px] text-[10px] font-semibold text-white shadow-[0_0_15px_rgba(248,113,113,0.8)]">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                <div className="absolute left-3 top-3 flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-lg shadow-red-600/50">
                     LIVE
                   </span>
                   <PlatformBadge platform={live.bj.platform} size="xs" />
                 </div>
+                {live.viewerCount && (
+                  <div className="absolute right-3 top-3 rounded-full bg-black/70 backdrop-blur-sm px-2 py-1">
+                    <span className="text-[10px] font-semibold text-amber-300">
+                      👁 {live.viewerCount.toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-2.5 space-y-1.5">
-                <h3 className="line-clamp-1 text-sm font-semibold text-zinc-50">
+              <div className="space-y-2">
+                <h3 className="line-clamp-2 text-sm font-semibold text-zinc-50 leading-snug group-hover:text-amber-400 transition-colors">
                   {live.title}
                 </h3>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">{live.bj.name}</span>
-                  {live.viewerCount && (
-                    <span className="text-amber-300/90">
-                      {live.viewerCount.toLocaleString()} 시청중
-                    </span>
-                  )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-zinc-400">{live.bj.name}</span>
                 </div>
               </div>
             </article>

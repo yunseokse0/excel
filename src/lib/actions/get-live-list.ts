@@ -269,21 +269,6 @@ const QUOTA_RESET_HOURS = 24; // 할당량 리셋까지 대기 시간 (시간)
 
 async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
   try {
-    console.log("[YouTube] Fetching live streams...");
-    
-    // Step 1: HTML 크롤링/스크래핑을 먼저 시도 (가장 신뢰할 수 있는 방법)
-    console.log("[YouTube] 🔄 Step 1: Trying HTML scraping...");
-    const scraperResult = await fetchYouTubeLiveStreamsWithScraper();
-    if (scraperResult.length > 0) {
-      console.log(`[YouTube] ✅ HTML scraping found ${scraperResult.length} streams`);
-      return scraperResult;
-    }
-    
-    console.log("[YouTube] ⚠️ HTML scraping found no streams");
-    
-    // Step 2: API 엔드포인트 시도 (할당량 초과 체크 포함)
-    console.log("[YouTube] 🔄 Step 2: Trying API endpoints...");
-    
     // 할당량 초과 상태 확인 (24시간 후 재시도)
     if (youtubeQuotaExceeded) {
       const hoursSinceError = (Date.now() - youtubeQuotaExceededTime) / (1000 * 60 * 60);
