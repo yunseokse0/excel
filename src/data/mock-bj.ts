@@ -18,16 +18,6 @@ export const mockBJs: BJ[] = [
     streamUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw", // 테스트용 URL (실제 API가 작동하면 사용되지 않음)
   },
   {
-    id: "bj-2",
-    name: "골드여신",
-    platform: "soop",
-    isLive: true,
-    currentScore: 98500,
-    thumbnailUrl: getPlaceholderImage(2),
-    channelUrl: "https://bjafree.soop.com/goldgoddess",
-    streamUrl: "https://play.afreecatv.com/goldgoddess/123456",
-  },
-  {
     id: "bj-3",
     name: "판다의신",
     platform: "youtube",
@@ -45,16 +35,6 @@ export const mockBJs: BJ[] = [
     thumbnailUrl: getPlaceholderImage(4),
     channelUrl: "https://www.youtube.com/@realtime",
     streamUrl: "https://www.youtube.com/watch?v=O6Dh1Q_5vLk",
-  },
-  {
-    id: "bj-5",
-    name: "엑셀장인",
-    platform: "soop",
-    isLive: true,
-    currentScore: 51200,
-    thumbnailUrl: getPlaceholderImage(5),
-    channelUrl: "https://play.afreecatv.com/excelmaster",
-    streamUrl: "https://play.afreecatv.com/excelmaster/987654",
   },
 ];
 

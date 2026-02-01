@@ -234,11 +234,7 @@ export function BJRevenueDashboard() {
                       <div>
                         <p className="font-medium">{r.bjName}</p>
                         <p className="text-[10px] text-zinc-500">
-                          {r.platform === "youtube"
-                            ? "YouTube"
-                            : r.platform === "soop"
-                            ? "SOOP"
-                            : "Unknown"}
+                          {r.platform === "youtube" ? "YouTube" : "Unknown"}
                         </p>
                       </div>
                     </td>

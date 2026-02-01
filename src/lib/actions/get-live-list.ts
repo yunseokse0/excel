@@ -2,7 +2,6 @@
 
 import { getSupabaseServerClient } from "../supabase-server";
 import { getYouTubeLiveStatus } from "../youtube-api";
-import { getSoopLiveStatus } from "../soop-api";
 import type { BJ } from "../../types/bj";
 import type { DetectedCategory } from "../domain/category";
 import { matchCategories, getPrimaryCategory } from "../domain/category";
@@ -56,7 +55,7 @@ export async function getCurrentLiveList() {
       // 모든 BJ 가져오기
       const { data, error: bjError } = await supabase
         .from("bjs")
-        .select("id, name, platform, channel_url, thumbnail_url, youtube_channel_id, soop_bj_id");
+        .select("id, name, platform, channel_url, thumbnail_url, youtube_channel_id");
 
       if (bjError || !data) {
         console.error("Failed to fetch BJs:", bjError);
@@ -75,8 +74,6 @@ export async function getCurrentLiveList() {
 
       if (bj.platform === "youtube" && bj.youtube_channel_id) {
         liveStatus = await getYouTubeLiveStatus(bj.youtube_channel_id);
-      } else if (bj.platform === "soop" && bj.soop_bj_id) {
-        liveStatus = await getSoopLiveStatus(bj.soop_bj_id);
       }
 
       if (liveStatus?.isLive) {
@@ -84,15 +81,13 @@ export async function getCurrentLiveList() {
           bj: {
             id: bj.id,
             name: bj.name,
-            platform: bj.platform as "youtube" | "soop",
+            platform: bj.platform as "youtube",
             isLive: true,
             currentScore: 0,
             thumbnailUrl: liveStatus.thumbnailUrl || bj.thumbnail_url || "",
             channelUrl: bj.channel_url,
             streamUrl: liveStatus.videoId
               ? `https://www.youtube.com/watch?v=${liveStatus.videoId}`
-              : liveStatus.broadcastNo
-              ? `https://play.afreecatv.com/${bj.soop_bj_id}/${liveStatus.broadcastNo}`
               : undefined,
           },
           isLive: true,
@@ -101,49 +96,34 @@ export async function getCurrentLiveList() {
           viewerCount: liveStatus.viewerCount,
           streamUrl: liveStatus.videoId
             ? `https://www.youtube.com/watch?v=${liveStatus.videoId}`
-            : liveStatus.broadcastNo
-            ? `https://play.afreecatv.com/${bj.soop_bj_id}/${liveStatus.broadcastNo}`
             : undefined,
           startedAt: liveStatus.publishedAt || liveStatus.startedAt,
         });
       }
     }
   } else {
-    // Frontend 기반 모드: YouTube와 SOOP API를 직접 호출하여 실시간 방송 검색
-    // 제미나이 제안: Promise.all로 병렬 처리하여 응답 속도 최적화
+    // Frontend 기반 모드: YouTube API를 직접 호출하여 실시간 방송 검색
     try {
-      console.log("[LiveList] 🔄 Fetching live streams in frontend-only mode (parallel)...");
+      console.log("[LiveList] 🔄 Fetching live streams in frontend-only mode...");
       console.log("[LiveList] Environment check:");
       console.log(`  - YOUTUBE_API_KEY: ${process.env.YOUTUBE_API_KEY ? `✅ Set (${process.env.YOUTUBE_API_KEY.length} chars)` : "❌ NOT SET"}`);
       
       const hasYoutubeKey = !!process.env.YOUTUBE_API_KEY;
       
-      const [youtubeLives, soopLives] = await Promise.all([
-        fetchYouTubeLiveStreams().catch((err) => {
-          console.error("[LiveList] ❌ YouTube fetch failed:", err);
-          if (err instanceof Error) {
-            console.error("[LiveList] YouTube error message:", err.message);
-            console.error("[LiveList] YouTube error stack:", err.stack);
-          }
-          console.error("[LiveList] ⚠️ YouTube API 호출 실패 - 할당량 초과 또는 API 키 문제일 수 있습니다");
-          return [];
-        }),
-        fetchSoopLiveStreams().catch((err) => {
-          console.error("[LiveList] ❌ SOOP fetch failed:", err);
-          if (err instanceof Error) {
-            console.error("[LiveList] SOOP error message:", err.message);
-            console.error("[LiveList] SOOP error stack:", err.stack);
-          }
-          console.error("[LiveList] ⚠️ SOOP API 호출 실패 - 엔드포인트 문제 또는 네트워크 오류일 수 있습니다");
-          return [];
-        }),
-      ]);
+      const youtubeLives = await fetchYouTubeLiveStreams().catch((err) => {
+        console.error("[LiveList] ❌ YouTube fetch failed:", err);
+        if (err instanceof Error) {
+          console.error("[LiveList] YouTube error message:", err.message);
+          console.error("[LiveList] YouTube error stack:", err.stack);
+        }
+        console.error("[LiveList] ⚠️ YouTube API 호출 실패 - 할당량 초과 또는 API 키 문제일 수 있습니다");
+        return [];
+      });
       
       // 상세 로깅
       console.log(`[LiveList] 📊 Fetch results:`);
       console.log(`  - YouTube: ${youtubeLives.length} streams`);
-      console.log(`  - SOOP: ${soopLives.length} streams`);
-      console.log(`  - Total before filtering: ${youtubeLives.length + soopLives.length}`);
+      console.log(`  - Total before filtering: ${youtubeLives.length}`);
       
       console.log(`[LiveList] ✅ Found ${youtubeLives.length} YouTube live streams`);
       if (youtubeLives.length === 0 && hasYoutubeKey) {
@@ -155,23 +135,20 @@ export async function getCurrentLiveList() {
         console.warn("  4. API key is invalid or restricted");
         console.warn("  5. Check server logs above for detailed YouTube API errors");
       }
-      console.log(`[LiveList] ✅ Found ${soopLives.length} SOOP live streams`);
       
       // API 키가 없고 개발 환경이면 mock 데이터일 가능성이 높음
       if (!hasYoutubeKey && process.env.NODE_ENV === "development") {
-        if (youtubeLives.length > 0 || soopLives.length > 0) {
+        if (youtubeLives.length > 0) {
           console.warn("[LiveList] ⚠️ API key missing but data found - likely mock data");
           isUsingMockData = true;
         }
       }
       
       liveList.push(...youtubeLives);
-      liveList.push(...soopLives);
       
       console.log(`[LiveList] ✅ Total live streams before filtering: ${liveList.length}`);
       console.log(`[LiveList] 📊 Breakdown:`);
       console.log(`  - YouTube: ${youtubeLives.length} streams`);
-      console.log(`  - SOOP: ${soopLives.length} streams`);
       
       // 각 플랫폼의 샘플 데이터 확인
       if (youtubeLives.length > 0) {
@@ -179,13 +156,6 @@ export async function getCurrentLiveList() {
           name: youtubeLives[0].bj.name,
           title: youtubeLives[0].title?.substring(0, 50),
           viewers: youtubeLives[0].viewerCount,
-        });
-      }
-      if (soopLives.length > 0) {
-        console.log(`[LiveList] 📺 SOOP sample:`, {
-          name: soopLives[0].bj.name,
-          title: soopLives[0].title?.substring(0, 50),
-          viewers: soopLives[0].viewerCount,
         });
       }
       
@@ -201,7 +171,7 @@ export async function getCurrentLiveList() {
         // No mock data fallback - return empty list if no streams found
         console.warn("[LiveList] ⚠️ No live streams found");
         console.warn("[LiveList] This might mean:");
-        console.warn("  1. No live broadcasts currently on YouTube/SOOP");
+        console.warn("  1. No live broadcasts currently on YouTube");
         console.warn("  2. API quota exceeded (check Google Cloud Console)");
         console.warn("  3. API key is invalid or restricted");
         console.warn("  4. Check server logs above for detailed errors");
@@ -247,9 +217,8 @@ export async function getCurrentLiveList() {
     console.warn(`  - YouTube 할당량 초과: ${youtubeQuotaExceeded ? "⚠️ 예 (24시간 후 재시도)" : "✅ 정상"}`);
     console.warn("[LiveList] 💡 가능한 원인:");
     console.warn("  1. YouTube API 할당량 초과 - Google Cloud Console에서 확인");
-    console.warn("  2. SOOP API 엔드포인트 실패 - 위의 [SOOP] 로그 확인");
-    console.warn("  3. 현재 실제로 방송 중인 BJ가 없음");
-    console.warn("  4. 필터링 로직이 너무 엄격함 - 위의 필터링 로그 확인");
+    console.warn("  2. 현재 실제로 방송 중인 BJ가 없음");
+    console.warn("  3. 필터링 로직이 너무 엄격함 - 위의 필터링 로그 확인");
     console.warn("[LiveList] Check server logs above for detailed error messages");
     
     // 진단 정보를 반환값에 포함 (API Route에서 사용)
@@ -444,7 +413,6 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
             // 첫 번째 검색 쿼리에서 403이 발생하면 전체 YouTube 호출 중단
             if (searchQueries.indexOf(searchConfig) === 0) {
               console.warn(`[YouTube] ⚠️ First search query failed with 403 - skipping all YouTube requests`);
-              console.warn(`[YouTube] ⚠️ Continuing with SOOP data only...`);
               return []; // 빈 배열 반환
             }
           } else {
@@ -546,11 +514,10 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
               console.error(`[YouTube] Error details:`, JSON.stringify(errorData, null, 2));
             }
             
-            // 403 에러가 발생하면 YouTube 데이터는 건너뛰고 SOOP만 사용
+            // 403 에러가 발생하면 YouTube 데이터는 건너뛰기
             // 첫 번째 배치에서 403이 발생하면 전체 YouTube 호출 중단
             if (i === 0) {
               console.warn(`[YouTube] ⚠️ First batch failed with 403 - skipping all YouTube requests`);
-              console.warn(`[YouTube] ⚠️ Continuing with SOOP data only...`);
               break; // 전체 루프 중단
             }
           } else {
@@ -910,493 +877,9 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
 }
 
 /**
- * Fetch live streams from SOOP (AfreecaTV) using category-based filtering.
- * 
- * This function uses the same category rule engine as YouTube,
- * ensuring consistent filtering across all platforms.
- */
-async function fetchSoopLiveStreams(): Promise<LiveStreamInfo[]> {
-  try {
-    console.log("[SOOP] Fetching live streams...");
-    
-    // 아프리카TV API 엔드포인트 (여러 개 시도)
-    // 참고: 아프리카TV는 공식 API가 없어 비공식 엔드포인트를 사용합니다
-    const apiEndpoints = [
-      "https://live.afreecatv.com/api/main/broad_list", // 최신 엔드포인트
-      "https://bjapi.afreecatv.com/api/main/broad_list",
-      "https://live.afreecatv.com/afreeca/live_list.php",
-      "https://bj.afreecatv.com/api/main/broad_list",
-      "https://st.afreecatv.com/api/main/broad_list",
-    ];
-
-    let broadcasts: any[] = [];
-    let lastError: Error | null = null;
-
-    // 각 엔드포인트를 시도
-    for (const apiUrl of apiEndpoints) {
-      try {
-        console.log(`[SOOP] Trying endpoint: ${apiUrl}`);
-        
-        // User-Agent를 일반 브라우저처럼 설정하여 403 Forbidden 방지
-        // 타임아웃 설정 (10초)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        let res: Response;
-        try {
-          res = await fetch(apiUrl, {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-              "Accept": "application/json, text/plain, */*",
-              "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-              "Referer": "https://www.afreecatv.com/",
-              "Origin": "https://www.afreecatv.com",
-            },
-            cache: "no-store",
-            next: { revalidate: 0 },
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
-        } catch (fetchError) {
-          clearTimeout(timeoutId);
-          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-            console.warn(`[SOOP] Endpoint ${apiUrl} timeout (10s)`);
-          } else {
-            console.warn(`[SOOP] Endpoint ${apiUrl} fetch error:`, fetchError);
-          }
-          continue;
-        }
-
-        if (!res.ok) {
-          console.warn(`[SOOP] Endpoint ${apiUrl} failed: ${res.status} ${res.statusText}`);
-          continue;
-        }
-
-        // 응답이 JSON인지 확인
-        const contentType = res.headers.get("content-type") || "";
-        const responseText = await res.text();
-        
-        if (!contentType.includes("application/json") && !contentType.includes("text/json")) {
-          console.warn(`[SOOP] Endpoint ${apiUrl} returned non-JSON (${contentType})`);
-          console.warn(`[SOOP] Response preview: ${responseText.substring(0, 200)}`);
-          continue;
-        }
-
-        let data: any;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.warn(`[SOOP] Failed to parse JSON from ${apiUrl}:`, parseError);
-          console.warn(`[SOOP] Response preview: ${responseText.substring(0, 200)}`);
-          continue;
-        }
-        
-        console.log(`[SOOP] Response structure keys:`, Object.keys(data));
-        console.log(`[SOOP] Response sample (first 200 chars):`, JSON.stringify(data).substring(0, 200));
-        
-        // 다양한 응답 구조 지원
-        if (data.broad_list && Array.isArray(data.broad_list)) {
-          broadcasts = data.broad_list;
-          console.log(`[SOOP] ✓ Found ${broadcasts.length} broadcasts from broad_list`);
-          if (broadcasts.length > 0) {
-            console.log(`[SOOP] Sample broadcast:`, {
-              user_id: broadcasts[0].user_id,
-              user_nick: broadcasts[0].user_nick,
-              broad_state: broadcasts[0].broad_state,
-              broad_title: broadcasts[0].broad_title?.substring(0, 50),
-            });
-          }
-          break;
-        } else if (data.list && Array.isArray(data.list)) {
-          broadcasts = data.list;
-          console.log(`[SOOP] ✓ Found ${broadcasts.length} broadcasts from list`);
-          break;
-        } else if (data.data && Array.isArray(data.data)) {
-          broadcasts = data.data;
-          console.log(`[SOOP] ✓ Found ${broadcasts.length} broadcasts from data`);
-          break;
-        } else if (Array.isArray(data)) {
-          broadcasts = data;
-          console.log(`[SOOP] ✓ Found ${broadcasts.length} broadcasts from array`);
-          break;
-        } else {
-          console.warn(`[SOOP] ✗ Unexpected response structure from ${apiUrl}`);
-          console.warn(`[SOOP] Full response:`, JSON.stringify(data).substring(0, 500));
-        }
-      } catch (error) {
-        console.warn(`[SOOP] Error fetching from ${apiUrl}:`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-        continue;
-      }
-    }
-
-    if (broadcasts.length === 0) {
-      console.warn("[SOOP] ⚠️ No broadcasts found from any endpoint");
-      if (lastError) {
-        console.error("[SOOP] Last error:", lastError.message || lastError);
-      }
-      
-      console.warn("[SOOP] Tried endpoints:", apiEndpoints);
-      console.warn("[SOOP] This might mean:");
-      console.warn("  1. All endpoints are blocked or changed");
-      console.warn("  2. Network/CORS issues");
-      console.warn("  3. API structure changed");
-      
-      // 대체 방법: 인기 방송 페이지 크롤링 시도
-      const htmlResult = await fetchSoopLiveStreamsFromHTML();
-      if (htmlResult.length > 0) {
-        console.log(`[SOOP] ✅ HTML fallback found ${htmlResult.length} streams`);
-        return htmlResult;
-      }
-      
-      // No mock data fallback - return empty array if all endpoints fail
-      console.warn("[SOOP] ⚠️ All API endpoints failed - SOOP API endpoints might be blocked or changed");
-      return [];
-    }
-
-    console.log(`[SOOP] Found ${broadcasts.length} total broadcasts, filtering by category rules...`);
-
-    // SOOP 필터링 및 매핑 (CategoryRule 기반)
-    const liveStreams = mapSoopBroadcastsToLiveStreams(broadcasts);
-
-    console.log(`[SOOP] ✅ Filtered to ${liveStreams.length} live streams (from ${broadcasts.length} total broadcasts)`);
-    
-    // 샘플 데이터 확인
-    if (liveStreams.length > 0) {
-      console.log(`[SOOP] Sample live streams (first 5):`);
-      liveStreams.slice(0, 5).forEach((item, idx) => {
-        const categoryTag = item.primaryCategoryId ? `[${item.primaryCategoryId}]` : "[no category]";
-        console.log(`  ${idx + 1}. ${item.bj.name} - ${item.title?.substring(0, 40)} (${item.viewerCount || 0} viewers) ${categoryTag}`);
-      });
-    } else {
-      console.warn("[SOOP] ⚠️ No live streams found after filtering");
-      if (broadcasts.length > 0) {
-        console.warn(`[SOOP] ${broadcasts.length} broadcasts were filtered out`);
-        console.warn("[SOOP] Possible reasons:");
-        console.warn("  1. All broadcasts are not live (broad_state !== ON_AIR)");
-        console.warn("  2. Missing user_id or bj_id");
-        console.warn("  3. News channels filtered out");
-        
-        // 샘플 방송 정보 출력
-        console.warn("[SOOP] Sample broadcast info (first 5):");
-        broadcasts.slice(0, 5).forEach((broad: any, idx: number) => {
-          const title = broad.broad_title || broad.title || "No title";
-          const nick = broad.user_nick || broad.user_nickname || broad.nickname || "Unknown";
-          const state = broad.broad_state || broad.status || "Unknown";
-          const userId = broad.user_id || broad.bj_id || broad.userId || "No ID";
-          console.warn(`  ${idx + 1}. ${nick} - ${title.substring(0, 50)}`);
-          console.warn(`      State: ${state}, UserID: ${userId}`);
-        });
-      }
-    }
-
-    return liveStreams;
-  } catch (error) {
-    console.error("[SOOP] ❌ Failed to fetch live streams:", error);
-    if (error instanceof Error) {
-      console.error("[SOOP] Error message:", error.message);
-      console.error("[SOOP] Error stack:", error.stack);
-    }
-    
-    // HTML 크롤링으로 폴백
-    console.log("[SOOP] Trying HTML fallback...");
-    try {
-      const htmlResult = await fetchSoopLiveStreamsFromHTML();
-      if (htmlResult.length > 0) {
-        console.log(`[SOOP] ✅ HTML fallback found ${htmlResult.length} streams`);
-        return htmlResult;
-      }
-    } catch (htmlError) {
-      console.warn("[SOOP] HTML fallback also failed:", htmlError);
-    }
-    
-    // No mock data fallback - return empty array on error
-    console.error("[SOOP] ❌ Error occurred - check error details above");
-    return [];
-  }
-}
-
-/**
- * HTML 크롤링으로 SOOP 라이브 방송 가져오기 (폴백)
- */
-async function fetchSoopLiveStreamsFromHTML(): Promise<LiveStreamInfo[]> {
-  try {
-    console.log("[SOOP] Trying HTML fallback method...");
-    
-    // cheerio를 동적으로 import (서버 사이드에서만 사용)
-    let cheerio: any;
-    try {
-      const cheerioModule = await import("cheerio");
-      // ESM 모듈에서는 default가 없을 수 있음
-      cheerio = (cheerioModule as any).default || cheerioModule;
-      if (!cheerio || typeof cheerio.load !== "function") {
-        console.warn("[SOOP] Cheerio import failed, skipping HTML parsing");
-        return [];
-      }
-    } catch (importError) {
-      console.warn("[SOOP] Failed to import cheerio:", importError);
-      return [];
-    }
-    
-    // 아프리카TV 인기 방송 페이지 (라이브 방송 목록)
-    const htmlUrl = "https://www.afreecatv.com/";
-    
-    // 타임아웃 설정 (15초)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
-    let res: Response;
-    try {
-      res = await fetch(htmlUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-          "Referer": "https://www.afreecatv.com/",
-        },
-        cache: "no-store",
-        next: { revalidate: 0 },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.warn(`[SOOP] HTML fetch timeout (15s)`);
-      } else {
-        console.warn(`[SOOP] HTML fetch error:`, fetchError);
-      }
-      return [];
-    }
-
-    if (!res.ok) {
-      console.warn(`[SOOP] HTML fetch failed: ${res.status}`);
-      return [];
-    }
-
-    const html = await res.text();
-    
-    if (!html || typeof html !== "string") {
-      console.warn(`[SOOP] HTML content is empty or invalid`);
-      return [];
-    }
-    
-    const $ = cheerio.load(html);
-    
-    // JSON 데이터 추출 시도 (일부 페이지는 JSON 데이터를 포함)
-    const jsonMatches = [
-      html.match(/window\.__INITIAL_STATE__\s*=\s*({.+?});/),
-      html.match(/window\.__PRELOADED_STATE__\s*=\s*({.+?});/),
-      html.match(/var\s+__DATA__\s*=\s*({.+?});/),
-    ];
-    
-    for (const jsonMatch of jsonMatches) {
-      if (jsonMatch) {
-        try {
-          const data = JSON.parse(jsonMatch[1]);
-          console.log("[SOOP] Found JSON data in HTML");
-          
-          // 다양한 JSON 구조 지원
-          let broadcasts: any[] = [];
-          if (data.broad_list && Array.isArray(data.broad_list)) {
-            broadcasts = data.broad_list;
-          } else if (data.list && Array.isArray(data.list)) {
-            broadcasts = data.list;
-          } else if (data.data && Array.isArray(data.data)) {
-            broadcasts = data.data;
-          } else if (Array.isArray(data)) {
-            broadcasts = data;
-          }
-          
-          if (broadcasts.length > 0) {
-            console.log(`[SOOP] ✅ Found ${broadcasts.length} broadcasts from HTML JSON`);
-            return mapSoopBroadcastsToLiveStreams(broadcasts);
-          }
-        } catch (parseError) {
-          console.warn("[SOOP] Failed to parse JSON from HTML:", parseError);
-        }
-      }
-    }
-    
-    // HTML에서 직접 파싱 시도
-    const liveStreams: LiveStreamInfo[] = [];
-    
-    // 아프리카TV 페이지의 라이브 방송 카드 선택자 (실제 구조에 맞게 조정 필요)
-    $(".live-item, .broad-item, [data-broad-state='ON_AIR']").each((_: any, element: any) => {
-      try {
-        const $el = $(element);
-        const userId = $el.attr("data-user-id") || $el.find("[data-user-id]").attr("data-user-id") || "";
-        const userNick = $el.find(".nickname, .user-nick, .bj-name").text().trim() || userId;
-        const broadNo = $el.attr("data-broad-no") || $el.find("[data-broad-no]").attr("data-broad-no") || "";
-        const title = $el.find(".title, .broad-title").text().trim() || `${userNick}의 방송`;
-        const thumbnail = $el.find("img").attr("src") || $el.find("img").attr("data-src") || "";
-        const viewerCountText = $el.find(".viewer, .viewer-count").text().trim();
-        const viewerCount = viewerCountText ? parseInt(viewerCountText.replace(/[^0-9]/g, ""), 10) : undefined;
-        
-        if (userId && broadNo) {
-          liveStreams.push({
-            bj: {
-              id: `soop-${userId}-${broadNo}`,
-              name: userNick || userId,
-              platform: "soop",
-              isLive: true,
-              currentScore: 0,
-              thumbnailUrl: thumbnail || `https://snapshot.afreecatv.com/live/snapshot/${broadNo}.jpg`,
-              channelUrl: `https://bj.afreecatv.com/${userId}`,
-              streamUrl: `https://play.afreecatv.com/${userId}/${broadNo}`,
-            },
-            isLive: true,
-            title,
-            thumbnailUrl: thumbnail || undefined,
-            viewerCount,
-            streamUrl: `https://play.afreecatv.com/${userId}/${broadNo}`,
-            startedAt: undefined,
-          });
-        }
-      } catch (error) {
-        console.warn("[SOOP] Error parsing HTML element:", error);
-      }
-    });
-    
-    if (liveStreams.length > 0) {
-      console.log(`[SOOP] ✅ Found ${liveStreams.length} live streams from HTML parsing`);
-      return liveStreams;
-    }
-    
-    console.warn("[SOOP] HTML fallback found no live streams");
-    return [];
-  } catch (error) {
-    console.error("[SOOP] HTML fallback failed:", error);
-    if (error instanceof Error) {
-      console.error("[SOOP] Error message:", error.message);
-    }
-    return [];
-  }
-}
-
-/**
- * SOOP 방송 데이터를 LiveStreamInfo로 매핑하는 헬퍼 함수
- */
-function mapSoopBroadcastsToLiveStreams(broadcasts: any[]): LiveStreamInfo[] {
-  // Category-based filtering using rule engine (same as YouTube)
-  const categoryRules = getActiveCategoryRules();
-  
-  const results = broadcasts
-    .map((broad: any): LiveStreamInfo | null => {
-      // 라이브 상태 확인 (더 완화된 조건)
-      const isLive = broad.broad_state === "ON_AIR" || 
-                     broad.status === "ON_AIR" || 
-                     broad.broad_state === "LIVE" ||
-                     broad.status === "LIVE" ||
-                     broad.broad_state === "1" ||
-                     broad.status === 1 ||
-                     broad.broad_state === 1 ||
-                     // broad_state가 없으면 라이브로 간주 (더 완화)
-                     (!broad.broad_state && !broad.status);
-      
-      // user_id가 없으면 건너뛰기
-      if (!(broad.user_id || broad.bj_id || broad.userId)) {
-        return null;
-      }
-      
-      // 라이브가 아니면 건너뛰기
-      if (!isLive) {
-        return null;
-      }
-      
-      // Category matching
-      const userNick = broad.user_nick || broad.user_nickname || broad.nickname || "";
-      const broadTitle = broad.broad_title || broad.title || "";
-      const fullText = `${broadTitle} ${userNick}`;
-      
-      // 뉴스 채널 사전 필터링 (카테고리 매칭 전에 제외)
-      const newsPattern = /(YTN|MBC.*뉴스|SBS.*뉴스|KBS.*뉴스|JTBC.*뉴스|채널A.*뉴스|TV조선.*뉴스|.*24.*시간.*뉴스|.*뉴스.*채널|.*뉴스.*24|.*뉴스.*방송|.*뉴스.*라이브)/i;
-      if (newsPattern.test(fullText)) {
-        return null; // 뉴스 채널 제외
-      }
-      
-      const detectedCategories = matchCategories(fullText, categoryRules);
-      
-      // 디버깅: 매칭된 카테고리 로그
-      if (detectedCategories.length > 0) {
-        console.log(`[SOOP] ✅ Category matched for "${userNick}": ${detectedCategories.map(c => c.categoryId).join(', ')}`);
-      } else {
-        console.log(`[SOOP] ⚠️ No category match for "${userNick}" - "${broadTitle}" (will still be included)`);
-      }
-      
-      // 카테고리 매칭: 매칭 실패해도 포함 (정렬에서 우선순위 처리)
-      // SOOP는 필터링을 완화하여 모든 방송 포함
-      const primaryCategoryId = detectedCategories.length > 0 
-        ? getPrimaryCategory(detectedCategories) 
-        : null;
-      
-      // 모든 방송 포함 (엑셀 방송은 정렬에서 우선 표시)
-      // 필터링 없이 모든 SOOP 방송 포함
-      
-      const userId = broad.user_id || broad.bj_id || broad.userId || "unknown";
-      const broadNo = broad.broad_no || broad.broadcast_no || broad.broadNo || "";
-      // 썸네일이 없으면 기본 이미지 사용
-      const thumbnail = broad.thumbnail || broad.thumbnail_url || broad.img || 
-                       (broadNo ? `https://snapshot.afreecatv.com/live/snapshot/${broadNo}.jpg` : "") ||
-                       "/window.svg"; // 기본 이미지로 변경
-      const viewerCount = broad.viewer_cnt || broad.viewer_count || broad.total_view_cnt || 
-                         (typeof broad.viewer === "number" ? broad.viewer : undefined);
-      
-      const finalUserNick = broad.user_nick || broad.user_nickname || broad.nickname || userId;
-      const finalBroadTitle = broad.broad_title || broad.title || `${finalUserNick}의 방송`;
-      
-      return {
-        bj: {
-          id: `soop-${userId}-${broadNo || Date.now()}`,
-          name: finalUserNick,
-          platform: "soop",
-          isLive: true,
-          currentScore: 0,
-          thumbnailUrl: thumbnail || "",
-          channelUrl: `https://bj.afreecatv.com/${userId}`,
-          streamUrl: broadNo ? `https://play.afreecatv.com/${userId}/${broadNo}` : undefined,
-        },
-        isLive: true,
-        title: finalBroadTitle,
-        thumbnailUrl: thumbnail || undefined,
-        viewerCount: typeof viewerCount === "number" ? viewerCount : 
-                    (typeof viewerCount === "string" ? parseInt(viewerCount, 10) : undefined),
-        streamUrl: broadNo ? `https://play.afreecatv.com/${userId}/${broadNo}` : undefined,
-        startedAt: broad.broad_start || broad.started_at || broad.start_time || undefined,
-        detectedCategories,
-        primaryCategoryId: primaryCategoryId || undefined,
-      };
-    });
-  
-  // 정렬: 엑셀 방송 우선 → 한국어 방송 → 시청자 수
-  const koreanPattern = /[가-힣]/;
-  const sortedResults = results
-    .filter((item): item is LiveStreamInfo => item !== null)
-    .sort((a, b) => {
-      // 1순위: 엑셀 방송 매칭 여부
-      const aIsExcel = a.primaryCategoryId === DEFAULT_CATEGORY_ID;
-      const bIsExcel = b.primaryCategoryId === DEFAULT_CATEGORY_ID;
-      if (aIsExcel && !bIsExcel) return -1;
-      if (!aIsExcel && bIsExcel) return 1;
-      
-      // 2순위: 한국어 방송
-      const aIsKorean = koreanPattern.test(a.title || "") || koreanPattern.test(a.bj.name || "");
-      const bIsKorean = koreanPattern.test(b.title || "") || koreanPattern.test(b.bj.name || "");
-      if (aIsKorean && !bIsKorean) return -1;
-      if (!aIsKorean && bIsKorean) return 1;
-      
-      // 3순위: 시청자 수
-      return (b.viewerCount || 0) - (a.viewerCount || 0);
-    });
-  
-  return sortedResults;
-}
-
-/**
  * 특정 플랫폼의 라이브 방송만 가져옵니다.
  */
-export async function getLiveListByPlatform(platform: "youtube" | "soop") {
+export async function getLiveListByPlatform(platform: "youtube") {
   const result = await getCurrentLiveList();
   if (!result.success) {
     return result;

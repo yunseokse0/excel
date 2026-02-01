@@ -2,7 +2,6 @@
 
 import { getSupabaseServerClient } from "../supabase-server";
 import { extractYouTubeChannelId } from "../youtube-api";
-import { extractSoopBJId } from "../soop-api";
 import type { Platform } from "../../types/bj";
 import { revalidatePath } from "next/cache";
 
@@ -25,9 +24,6 @@ function detectPlatformFromUrl(channelUrl: string): Platform | null {
       return "youtube";
     }
 
-    if (url.hostname.includes("afreecatv.com") || url.hostname.includes("soop.com")) {
-      return "soop";
-    }
 
 
     return null;
@@ -55,13 +51,12 @@ export async function addBJ(input: AddBJInput) {
   if (!platform) {
     return {
       success: false,
-      error: "플랫폼을 자동으로 감지할 수 없습니다. YouTube 또는 SOOP(아프리카TV) URL을 입력해주세요.",
+      error: "플랫폼을 자동으로 감지할 수 없습니다. YouTube URL을 입력해주세요.",
     };
   }
 
   // 2) 채널 ID 추출
   let youtubeChannelId: string | null = null;
-  let soopBJId: string | null = null;
 
   if (platform === "youtube") {
     youtubeChannelId = extractYouTubeChannelId(input.channelUrl);
@@ -69,14 +64,6 @@ export async function addBJ(input: AddBJInput) {
       return {
         success: false,
         error: "YouTube 채널 ID를 추출할 수 없습니다. 올바른 YouTube 채널 URL을 입력해주세요.",
-      };
-    }
-  } else if (platform === "soop") {
-    soopBJId = extractSoopBJId(input.channelUrl);
-    if (!soopBJId) {
-      return {
-        success: false,
-        error: "SOOP BJ ID를 추출할 수 없습니다. 올바른 아프리카TV 채널 URL을 입력해주세요.",
       };
     }
   }
@@ -104,7 +91,6 @@ export async function addBJ(input: AddBJInput) {
       channel_url: input.channelUrl,
       thumbnail_url: input.thumbnailUrl || null,
       youtube_channel_id: youtubeChannelId,
-      soop_bj_id: soopBJId,
     })
     .select()
     .single();

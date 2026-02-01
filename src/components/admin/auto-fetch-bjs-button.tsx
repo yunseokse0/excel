@@ -8,7 +8,7 @@ export function AutoFetchBJsButton() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
-  const handleAutoFetch = async (platform: "youtube" | "soop" | "all") => {
+  const handleAutoFetch = async (platform: "youtube" | "all") => {
     setLoading(true);
     try {
       const res = await fetch(`/api/auto-fetch-bjs?platform=${platform}`);

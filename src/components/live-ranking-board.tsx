@@ -20,7 +20,7 @@ export function LiveRankingBoard() {
               실시간 시청자 랭킹
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              YouTube와 SOOP 플랫폼의 실시간 시청자수 기준 랭킹입니다.
+              YouTube 플랫폼의 실시간 시청자수 기준 랭킹입니다.
             </p>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-1">

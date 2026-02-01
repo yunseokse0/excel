@@ -21,9 +21,6 @@ function getEmbedUrl(bj: BJ): string | null {
     return `https://www.youtube.com/embed/${id}?autoplay=1`;
   }
 
-  if (bj.platform === "soop") {
-    return bj.streamUrl;
-  }
 
 
   return null;

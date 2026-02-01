@@ -395,7 +395,7 @@ export default function LiveListPage() {
           {filteredList.map((item) => (
             <UniversalPlayerTrigger
               key={item.bj.id}
-              bj={item.bj}
+              bj={item.bj as any}
               title={item.title}
             >
               <div className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-950/80 overflow-hidden hover:border-amber-500/50 transition">
@@ -413,7 +413,7 @@ export default function LiveListPage() {
                     <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
                       LIVE
                     </span>
-                    <PlatformBadge platform={item.bj.platform} />
+                    <PlatformBadge platform={item.bj.platform as "youtube"} />
                   </div>
                   <div className="absolute top-2 right-2 flex items-center gap-2">
                     {item.viewerCount !== undefined && (

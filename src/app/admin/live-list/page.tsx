@@ -6,6 +6,7 @@ import { PlatformBadge } from "../../../components/platform-badge";
 import { UniversalPlayerTrigger } from "../../../components/universal-player";
 import { useToast } from "../../../components/ui/toast-context";
 import Link from "next/link";
+import type { BJ } from "../../../types/bj";
 
 interface LiveStreamInfo {
   bj: {
@@ -123,7 +124,7 @@ export default function LiveListPage() {
           {liveList.map((item) => (
             <UniversalPlayerTrigger
               key={item.bj.id}
-              bj={item.bj}
+              bj={item.bj as BJ}
               title={item.title}
             >
               <div className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-950/80 overflow-hidden hover:border-amber-500/50 transition cursor-pointer">
@@ -137,7 +138,7 @@ export default function LiveListPage() {
                     <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
                       LIVE
                     </span>
-                    <PlatformBadge platform={item.bj.platform} />
+                    <PlatformBadge platform={item.bj.platform as "youtube"} />
                   </div>
                   {item.viewerCount !== undefined && (
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] text-zinc-100">

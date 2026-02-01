@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "실시간 방송 리스트",
-  description: "YouTube와 SOOP 실시간 방송을 한눈에. 실시간 시청자수 기준 랭킹과 라이브 스트리밍.",
+  description: "YouTube 실시간 방송을 한눈에. 실시간 시청자수 기준 랭킹과 라이브 스트리밍.",
 };
 
 export default function RootLayout({

@@ -7,7 +7,6 @@ import { PlatformBadge } from "../platform-badge";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { useToast } from "../ui/toast-context";
 import { YouTubeSyncButton } from "./youtube-sync-button";
-import { SoopSyncButton } from "./soop-sync-button";
 
 interface RankingEditTableProps {
   initialRanking?: RankingEntry[];
@@ -25,12 +24,11 @@ export function RankingEditTable({ initialRanking }: RankingEditTableProps) {
               실시간 시청자 랭킹
             </h1>
             <p className="text-sm text-zinc-400">
-              YouTube와 SOOP 플랫폼의 실시간 시청자수 기준 랭킹입니다. 30초마다 자동으로 갱신됩니다.
+              YouTube 플랫폼의 실시간 시청자수 기준 랭킹입니다. 30초마다 자동으로 갱신됩니다.
             </p>
         </div>
         <div className="flex items-center gap-2">
           <YouTubeSyncButton />
-          <SoopSyncButton />
         </div>
       </div>
 

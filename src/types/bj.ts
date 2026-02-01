@@ -1,4 +1,4 @@
-export type Platform = "youtube" | "soop";
+export type Platform = "youtube";
 
 export interface BJ {
   id: string;

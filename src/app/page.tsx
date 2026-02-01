@@ -76,9 +76,8 @@ export default function HomePage() {
         } else {
           console.warn(`[HomePage] ⚠️ API returned error or no data:`, data.error || 'No liveList');
           console.warn(`[HomePage] 💡 문제 해결 방법:`);
-          console.warn(`  1. 서버 터미널에서 [LiveList], [YouTube], [SOOP] 로그 확인`);
+          console.warn(`  1. 서버 터미널에서 [LiveList], [YouTube] 로그 확인`);
           console.warn(`  2. YouTube API 할당량 초과 시 24시간 후 자동 재시도`);
-          console.warn(`  3. SOOP API 실패 시 서버 로그에서 에러 확인`);
           console.warn(`  4. 개발 서버 재시작: npm run dev`);
           setLiveList([]);
         }

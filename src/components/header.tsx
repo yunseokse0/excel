@@ -33,7 +33,7 @@ export function Header() {
               실시간 방송 리스트
             </span>
             <span className="text-[10px] sm:text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors">
-              YouTube와 SOOP 실시간 방송 모음
+              YouTube 실시간 방송 모음
             </span>
           </div>
         </Link>
