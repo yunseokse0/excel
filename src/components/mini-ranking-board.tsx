@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, RefreshCw } from "lucide-react";
 import { RankingEntry } from "../types/bj";
 import { PlatformBadge } from "./platform-badge";
 import { useLiveRanking } from "../hooks/use-live-ranking";
@@ -12,7 +12,7 @@ interface MiniRankingBoardProps {
 
 export function MiniRankingBoard({ ranking: propRanking }: MiniRankingBoardProps) {
   // Use hook to get real-time ranking if not provided as prop
-  const { ranking: hookRanking, loading } = useLiveRanking();
+  const { ranking: hookRanking, loading, timeUntilRefresh } = useLiveRanking();
   const ranking = propRanking || hookRanking.slice(0, 5);
   
   if (loading && ranking.length === 0) {
@@ -64,7 +64,15 @@ export function MiniRankingBoard({ ranking: propRanking }: MiniRankingBoardProps
           <h2 className="text-sm font-semibold tracking-wide text-zinc-50">
             실시간 시청자 TOP 5
           </h2>
-          <p className="text-[11px] text-zinc-400">실시간 시청자수 랭킹 요약</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-[11px] text-zinc-400">실시간 시청자수 랭킹 요약</p>
+            {timeUntilRefresh !== undefined && timeUntilRefresh > 0 && (
+              <span className="flex items-center gap-1 text-[10px] text-zinc-500">
+                <RefreshCw className="h-2.5 w-2.5" />
+                <span>{timeUntilRefresh}초 후 갱신</span>
+              </span>
+            )}
+          </div>
         </div>
         <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-[10px] font-semibold text-yellow-300 border border-yellow-400/60">
           LIVE RANK

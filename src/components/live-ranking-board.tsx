@@ -1,12 +1,13 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
 import { useLiveRanking } from "../hooks/use-live-ranking";
 import { RankingTable } from "./ranking-table";
 import { Podium } from "./ranking-podium";
 import { Skeleton } from "./ui/skeleton";
 
 export function LiveRankingBoard() {
-  const { ranking, loading, usingMock } = useLiveRanking();
+  const { ranking, loading, usingMock, timeUntilRefresh } = useLiveRanking();
   const top3 = ranking.slice(0, 3);
 
   const showSkeleton = loading && !ranking.length;
@@ -19,9 +20,17 @@ export function LiveRankingBoard() {
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-50">
               실시간 시청자 랭킹
             </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              YouTube 플랫폼의 실시간 시청자수 기준 랭킹입니다.
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs sm:text-sm text-zinc-400">
+                YouTube 플랫폼의 실시간 시청자수 기준 랭킹입니다.
+              </p>
+              {timeUntilRefresh !== undefined && timeUntilRefresh > 0 && (
+                <span className="flex items-center gap-1 text-[10px] sm:text-xs text-zinc-500">
+                  <RefreshCw className="h-3 w-3" />
+                  <span>{timeUntilRefresh}초 후 자동 갱신</span>
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-1">
             {loading && (

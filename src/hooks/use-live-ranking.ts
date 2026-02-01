@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import type { RankingEntry } from "../types/bj";
 import { useLiveRankingStore } from "../store/live-ranking";
 
+const REFRESH_INTERVAL = 30000; // 30초
+
 export function useLiveRanking() {
   const { ranking, loading, setRanking, setLoading } = useLiveRankingStore();
   const [lastUpdate, setLastUpdate] = useState(0);
+  const [timeUntilRefresh, setTimeUntilRefresh] = useState(REFRESH_INTERVAL);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +46,9 @@ export function useLiveRanking() {
 
         if (data.success && data.ranking) {
           setRanking(data.ranking, false);
-          setLastUpdate(Date.now());
+          const now = Date.now();
+          setLastUpdate(now);
+          setTimeUntilRefresh(REFRESH_INTERVAL);
           console.log(`[useLiveRanking] ✅ Loaded ${data.ranking.length} ranking entries`);
         } else {
           console.error("[useLiveRanking] Failed to load live ranking:", data.error);
@@ -74,7 +79,16 @@ export function useLiveRanking() {
         console.log("[useLiveRanking] Polling for ranking updates...");
         void load();
       }
-    }, 30000);
+    }, REFRESH_INTERVAL);
+
+    // 리프레시 카운트다운 업데이트 (1초마다)
+    const countdownInterval = setInterval(() => {
+      if (!cancelled && lastUpdate > 0) {
+        const elapsed = Date.now() - lastUpdate;
+        const remaining = Math.max(0, REFRESH_INTERVAL - elapsed);
+        setTimeUntilRefresh(remaining);
+      }
+    }, 1000);
 
     return () => {
       cancelled = true;
@@ -82,8 +96,15 @@ export function useLiveRanking() {
       if (intervalId) {
         clearInterval(intervalId);
       }
+      clearInterval(countdownInterval);
     };
   }, [setRanking, setLoading, lastUpdate]);
 
-  return { ranking, loading, usingMock: false };
+  return { 
+    ranking, 
+    loading, 
+    usingMock: false,
+    timeUntilRefresh: Math.ceil(timeUntilRefresh / 1000), // 초 단위로 반환
+    lastUpdate,
+  };
 }
