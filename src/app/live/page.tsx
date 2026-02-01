@@ -11,7 +11,13 @@ export default function LivePage() {
   useEffect(() => {
     async function loadLiveList() {
       try {
-        const res = await fetch("/api/live-list");
+        const timestamp = Date.now();
+        const res = await fetch(`/api/live-list?t=${timestamp}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
         const data = await res.json();
         
         if (data.success && data.liveList) {
