@@ -2,15 +2,7 @@
   "crons": [
     {
       "path": "/api/sync-youtube",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/sync-soop",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/calculate-scores",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
