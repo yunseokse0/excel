@@ -26,83 +26,206 @@ export async function scrapeYouTubeLiveSearch(query: string): Promise<YouTubeScr
     const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=EgJAAQ%253D%253D`;
     
     console.log(`[YouTube Scraper] 🔍 Searching for: "${query}"`);
+    console.log(`[YouTube Scraper] 📡 URL: ${searchUrl}`);
     
     const response = await fetch(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://www.youtube.com/',
+        'Origin': 'https://www.youtube.com',
       },
     });
 
     if (!response.ok) {
-      console.error(`[YouTube Scraper] ❌ Failed to fetch: ${response.status}`);
+      console.error(`[YouTube Scraper] ❌ Failed to fetch: ${response.status} ${response.statusText}`);
+      const text = await response.text().catch(() => '');
+      console.error(`[YouTube Scraper] Response preview: ${text.substring(0, 200)}`);
       return [];
     }
 
     const html = await response.text();
+    console.log(`[YouTube Scraper] 📄 HTML length: ${html.length} bytes`);
     
-    // YouTube는 초기 HTML에 JSON 데이터를 포함합니다
-    // var ytInitialData = {...} 패턴 찾기
-    const ytInitialDataMatch = html.match(/var ytInitialData = ({.+?});/);
+    if (html.length < 1000) {
+      console.warn(`[YouTube Scraper] ⚠️ HTML too short, might be blocked`);
+      return [];
+    }
     
-    if (!ytInitialDataMatch) {
+    // 여러 패턴으로 ytInitialData 찾기
+    let ytInitialData: any = null;
+    
+    // 패턴 1: var ytInitialData = {...};
+    let match = html.match(/var ytInitialData\s*=\s*({[\s\S]+?});/);
+    if (match && match[1]) {
+      try {
+        ytInitialData = JSON.parse(match[1]);
+        console.log(`[YouTube Scraper] ✅ Found ytInitialData (pattern 1)`);
+      } catch (e) {
+        console.warn(`[YouTube Scraper] ⚠️ Failed to parse pattern 1:`, e);
+      }
+    }
+    
+    // 패턴 2: window["ytInitialData"] = {...};
+    if (!ytInitialData) {
+      match = html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]+?});/);
+      if (match && match[1]) {
+        try {
+          ytInitialData = JSON.parse(match[1]);
+          console.log(`[YouTube Scraper] ✅ Found ytInitialData (pattern 2)`);
+        } catch (e) {
+          console.warn(`[YouTube Scraper] ⚠️ Failed to parse pattern 2:`, e);
+        }
+      }
+    }
+    
+    // 패턴 3: <script> 태그 내부
+    if (!ytInitialData) {
+      const scriptMatches = html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi);
+      for (const scriptMatch of scriptMatches) {
+        const scriptContent = scriptMatch[1];
+        match = scriptContent.match(/var ytInitialData\s*=\s*({[\s\S]+?});/);
+        if (match && match[1]) {
+          try {
+            ytInitialData = JSON.parse(match[1]);
+            console.log(`[YouTube Scraper] ✅ Found ytInitialData (pattern 3 - script tag)`);
+            break;
+          } catch (e) {
+            // Continue searching
+          }
+        }
+      }
+    }
+    
+    if (!ytInitialData) {
       console.warn(`[YouTube Scraper] ⚠️ Could not find ytInitialData in HTML`);
+      console.warn(`[YouTube Scraper] HTML preview (first 500 chars): ${html.substring(0, 500)}`);
       return [];
     }
 
     try {
-      const ytInitialData = JSON.parse(ytInitialDataMatch[1]);
-      
-      // 라이브 방송 정보 추출
-      const contents = ytInitialData?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+      // 여러 경로로 비디오 데이터 찾기
       const videos: YouTubeScrapedLive[] = [];
+      
+      // 경로 1: twoColumnSearchResultsRenderer
+      let contents = ytInitialData?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+      
+      // 경로 2: 직접 contents
+      if (contents.length === 0) {
+        contents = ytInitialData?.contents || [];
+      }
+      
+      // 경로 3: onResponseReceivedCommands
+      if (contents.length === 0) {
+        const commands = ytInitialData?.onResponseReceivedCommands || [];
+        for (const cmd of commands) {
+          if (cmd?.appendContinuationItemsAction?.items) {
+            contents.push(...cmd.appendContinuationItemsAction.items);
+          }
+        }
+      }
+
+      console.log(`[YouTube Scraper] 📊 Found ${contents.length} content sections`);
 
       for (const section of contents) {
+        // itemSectionRenderer 경로
         const itemSection = section?.itemSectionRenderer?.contents || [];
         
-        for (const item of itemSection) {
-          const videoRenderer = item?.videoRenderer;
-          if (!videoRenderer) continue;
+        // videoRenderer 직접 경로
+        const directVideo = section?.videoRenderer;
+        
+        const items = directVideo ? [directVideo] : itemSection;
+        
+        for (const item of items) {
+          const videoRenderer = item?.videoRenderer || item;
+          if (!videoRenderer || !videoRenderer.videoId) continue;
 
-          // 라이브 방송만 필터링
+          // 라이브 방송 필터링 - 여러 방법 시도
+          let isLive = false;
+          
+          // 방법 1: badges 확인
           const badges = videoRenderer.badges || [];
-          const isLive = badges.some((badge: any) => 
-            badge.metadataBadgeRenderer?.label === 'LIVE' ||
-            badge.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_LIVE_NOW'
+          isLive = badges.some((badge: any) => 
+            badge?.metadataBadgeRenderer?.label === 'LIVE' ||
+            badge?.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_LIVE_NOW' ||
+            badge?.liveBadgeRenderer
           );
+          
+          // 방법 2: lengthText 확인 (라이브는 "시청 중" 같은 텍스트)
+          if (!isLive && videoRenderer.lengthText) {
+            const lengthText = videoRenderer.lengthText?.simpleText || videoRenderer.lengthText?.runs?.[0]?.text || '';
+            isLive = lengthText.includes('시청') || lengthText.includes('LIVE') || lengthText === '';
+          }
+          
+          // 방법 3: thumbnailOverlays 확인
+          if (!isLive && videoRenderer.thumbnailOverlays) {
+            isLive = videoRenderer.thumbnailOverlays.some((overlay: any) => 
+              overlay?.thumbnailOverlayTimeStatusRenderer?.style === 'LIVE'
+            );
+          }
 
           if (!isLive) continue;
 
           const videoId = videoRenderer.videoId;
-          const title = videoRenderer.title?.runs?.[0]?.text || videoRenderer.title?.simpleText || '';
-          const channelTitle = videoRenderer.ownerText?.runs?.[0]?.text || '';
-          const channelId = videoRenderer.ownerText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId || '';
-          const thumbnailUrl = videoRenderer.thumbnail?.thumbnails?.[videoRenderer.thumbnail.thumbnails.length - 1]?.url || '';
+          const title = videoRenderer.title?.runs?.[0]?.text || 
+                       videoRenderer.title?.simpleText || 
+                       videoRenderer.title?.accessibility?.accessibilityData?.label || 
+                       '';
+          const channelTitle = videoRenderer.ownerText?.runs?.[0]?.text || 
+                             videoRenderer.ownerText?.simpleText || 
+                             videoRenderer.channelTitle?.simpleText || 
+                             '';
+          const channelId = videoRenderer.ownerText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId || 
+                          videoRenderer.channelId || 
+                          videoRenderer.navigationEndpoint?.browseEndpoint?.browseId || 
+                          '';
           
-          // 시청자 수 추출 (있는 경우)
-          const viewCountText = videoRenderer.viewCountText?.runs?.[0]?.text || '';
+          // 썸네일 URL 추출
+          let thumbnailUrl = '';
+          if (videoRenderer.thumbnail?.thumbnails?.length > 0) {
+            const thumbnails = videoRenderer.thumbnail.thumbnails;
+            thumbnailUrl = thumbnails[thumbnails.length - 1]?.url || thumbnails[0]?.url || '';
+          }
+          
+          // 시청자 수 추출
+          const viewCountText = videoRenderer.viewCountText?.runs?.[0]?.text || 
+                               videoRenderer.viewCountText?.simpleText || 
+                               '';
           const viewerCount = parseViewerCount(viewCountText);
 
-          videos.push({
-            videoId,
-            title,
-            channelTitle,
-            channelId,
-            thumbnailUrl,
-            viewerCount,
-          });
+          if (videoId && title) {
+            videos.push({
+              videoId,
+              title,
+              channelTitle,
+              channelId,
+              thumbnailUrl,
+              viewerCount,
+            });
+          }
         }
       }
 
       console.log(`[YouTube Scraper] ✅ Found ${videos.length} live streams`);
+      if (videos.length > 0) {
+        console.log(`[YouTube Scraper] Sample: ${videos[0].title} by ${videos[0].channelTitle}`);
+      }
       return videos;
     } catch (parseError) {
       console.error(`[YouTube Scraper] ❌ Failed to parse ytInitialData:`, parseError);
+      if (parseError instanceof Error) {
+        console.error(`[YouTube Scraper] Error message:`, parseError.message);
+      }
       return [];
     }
   } catch (error) {
     console.error(`[YouTube Scraper] ❌ Error:`, error);
+    if (error instanceof Error) {
+      console.error(`[YouTube Scraper] Error message:`, error.message);
+      console.error(`[YouTube Scraper] Error stack:`, error.stack);
+    }
     return [];
   }
 }
