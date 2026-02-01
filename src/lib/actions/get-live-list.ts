@@ -268,56 +268,89 @@ let youtubeQuotaExceededTime = 0;
 const QUOTA_RESET_HOURS = 24; // 할당량 리셋까지 대기 시간 (시간)
 
 async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
-  // 할당량 초과 상태 확인 (24시간 후 재시도)
-  if (youtubeQuotaExceeded) {
-    const hoursSinceError = (Date.now() - youtubeQuotaExceededTime) / (1000 * 60 * 60);
-    if (hoursSinceError < QUOTA_RESET_HOURS) {
-      console.warn(`[YouTube] ⚠️ Quota exceeded. Skipping YouTube API calls. (${Math.round(QUOTA_RESET_HOURS - hoursSinceError)} hours until retry)`);
-      return [];
-    } else {
-      // 24시간 경과 후 재시도
-      console.log("[YouTube] ✅ Quota reset time passed. Retrying YouTube API calls...");
-      youtubeQuotaExceeded = false;
-      youtubeQuotaExceededTime = 0;
-    }
-  }
-
-  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-  if (!YOUTUBE_API_KEY) {
-    console.error("[YouTube] ❌ YOUTUBE_API_KEY is not set in environment variables");
-    console.error("[YouTube] Please add YOUTUBE_API_KEY to .env.local file");
-    console.error("[YouTube] Format: YOUTUBE_API_KEY=your_actual_key_here");
-    console.error("[YouTube] Then restart the dev server (npm run dev)");
-    
-    // No mock data fallback - return empty array if API key is missing
-    console.warn("[YouTube] ⚠️ YOUTUBE_API_KEY is required. Add it to .env.local and restart server");
-    return [];
-  }
-  
-  // API 키 형식 확인 (Google API 키는 보통 39자)
-  if (YOUTUBE_API_KEY.length < 20) {
-    console.warn("[YouTube] ⚠️ API key seems too short (length:", YOUTUBE_API_KEY.length, ")");
-    console.warn("[YouTube] Make sure you copied the full API key");
-  }
-  
-  console.log("[YouTube] ✅ API key found (length:", YOUTUBE_API_KEY.length, ")");
-
   try {
+    console.log("[YouTube] Fetching live streams...");
+    
+    // Step 1: HTML 크롤링/스크래핑을 먼저 시도 (가장 신뢰할 수 있는 방법)
+    console.log("[YouTube] 🔄 Step 1: Trying HTML scraping...");
+    const scraperResult = await fetchYouTubeLiveStreamsWithScraper();
+    if (scraperResult.length > 0) {
+      console.log(`[YouTube] ✅ HTML scraping found ${scraperResult.length} streams`);
+      return scraperResult;
+    }
+    
+    console.log("[YouTube] ⚠️ HTML scraping found no streams");
+    
+    // Step 2: API 엔드포인트 시도 (할당량 초과 체크 포함)
+    console.log("[YouTube] 🔄 Step 2: Trying API endpoints...");
+    
+    // 할당량 초과 상태 확인 (24시간 후 재시도)
+    if (youtubeQuotaExceeded) {
+      const hoursSinceError = (Date.now() - youtubeQuotaExceededTime) / (1000 * 60 * 60);
+      if (hoursSinceError < QUOTA_RESET_HOURS) {
+        console.warn(`[YouTube] ⚠️ Quota exceeded. Skipping API call...`);
+        console.warn(`[YouTube] ⚠️ API quota will reset in ${Math.round(QUOTA_RESET_HOURS - hoursSinceError)} hours`);
+        return [];
+      } else {
+        // 24시간 경과 후 재시도
+        console.log("[YouTube] ✅ Quota reset time passed. Retrying YouTube API calls...");
+        youtubeQuotaExceeded = false;
+        youtubeQuotaExceededTime = 0;
+      }
+    }
+
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+    
+    // Placeholder 값 체크
+    const isPlaceholder = (value: string | undefined) => {
+      if (!value) return true;
+      const placeholderPatterns = [
+        "your_youtube_api_key",
+        "your_api_key",
+      ];
+      return placeholderPatterns.some(pattern => 
+        value.toLowerCase().includes(pattern.toLowerCase())
+      );
+    };
+
+    if (!YOUTUBE_API_KEY || isPlaceholder(YOUTUBE_API_KEY)) {
+      console.warn("[YouTube] ⚠️ YOUTUBE_API_KEY is not set or is a placeholder value");
+      console.warn("[YouTube] HTML scraping already attempted, returning empty array");
+      return [];
+    }
+    
+    // API 키 형식 확인 (Google API 키는 보통 39자)
+    if (YOUTUBE_API_KEY.length < 20) {
+      console.warn("[YouTube] ⚠️ API key seems too short (length:", YOUTUBE_API_KEY.length, ")");
+      console.warn("[YouTube] Make sure you copied the full API key");
+    }
+    
+    console.log("[YouTube] ✅ API key found (length:", YOUTUBE_API_KEY.length, ")");
+
+    try {
     // 1단계: Search API로 후보군 추출
     // 카테고리별 검색어를 사용하여 더 넓은 범위의 방송을 가져온 후
     // 카테고리 룰 엔진으로 필터링
     const defaultCategory = getActiveCategoryRules().find(r => r.id === DEFAULT_CATEGORY_ID);
     
-    // 할당량 절약을 위해 검색어 수를 최소화
-    // 엑셀 방송 위주로 검색하되, 검색어는 최소한으로 유지
+    // 더 많은 방송을 가져오기 위해 검색어 대폭 확장
     const searchQueries = [
-      // 엑셀 방송 관련 검색어 (우선순위, 최소한으로)
+      // 엑셀 방송 관련 검색어 (우선순위)
       ...(defaultCategory ? [
         { q: "엑셀 방송", regionCode: "KR", relevanceLanguage: "ko" },
         { q: "엑셀 라이브", regionCode: "KR", relevanceLanguage: "ko" },
+        { q: "엑셀", regionCode: "KR", relevanceLanguage: "ko" },
+        { q: "엑셀 강의", regionCode: "KR", relevanceLanguage: "ko" },
+        { q: "엑셀 튜토리얼", regionCode: "KR", relevanceLanguage: "ko" },
       ] : []),
-      // 일반 라이브 검색어는 할당량 절약을 위해 제한
-      // 필요시 주석 해제: { q: "라이브", regionCode: "KR", relevanceLanguage: "ko" },
+      // 일반 라이브 검색어 추가 (더 많은 방송 수집)
+      { q: "라이브", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "방송", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "생방송", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "실시간", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "게임", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "음악", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "토크", regionCode: "KR", relevanceLanguage: "ko" },
     ];
     
     let allVideoItems: any[] = [];
@@ -327,8 +360,8 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
       searchUrl.searchParams.set("part", "snippet");
       searchUrl.searchParams.set("eventType", "live");
       searchUrl.searchParams.set("type", "video");
-      // 할당량 절약을 위해 maxResults를 줄임
-      searchUrl.searchParams.set("maxResults", "25");
+      // 더 많은 결과를 가져오기 위해 maxResults 최대값 사용
+      searchUrl.searchParams.set("maxResults", "50");
       searchUrl.searchParams.set("order", "viewCount");
       if (searchConfig.q) {
         searchUrl.searchParams.set("q", searchConfig.q);
@@ -367,8 +400,8 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
           allVideoItems.push(...newItems);
           console.log(`[YouTube] Added ${newItems.length} new videos (total: ${allVideoItems.length})`);
           
-          // 할당량 절약을 위해 결과가 충분하면 중단 (최소 5개 이상)
-          if (allVideoItems.length >= 5) {
+          // 더 많은 결과를 수집하기 위해 중단 조건 완화 (최소 50개 이상)
+          if (allVideoItems.length >= 50) {
             console.log(`[YouTube] ✅ Got enough results (${allVideoItems.length}), stopping search to save quota`);
             break;
           }
@@ -863,8 +896,19 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
     }
 
     return sortedResult;
+    } catch (error) {
+      console.error("[YouTube] ❌ Failed to fetch YouTube live streams:", error);
+      if (error instanceof Error) {
+        console.error("[YouTube] Error message:", error.message);
+        console.error("[YouTube] Error stack:", error.stack);
+      }
+      
+      // No mock data fallback - return empty array on error
+      console.error("[YouTube] ❌ Error occurred - check error details above");
+      return [];
+    }
   } catch (error) {
-    console.error("[YouTube] ❌ Failed to fetch YouTube live streams:", error);
+    console.error("[YouTube] ❌ Failed to fetch YouTube live streams (outer catch):", error);
     if (error instanceof Error) {
       console.error("[YouTube] Error message:", error.message);
       console.error("[YouTube] Error stack:", error.stack);

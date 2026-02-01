@@ -24,8 +24,23 @@ export interface YouTubeLiveStatus {
 export async function getYouTubeLiveStatus(
   channelId: string
 ): Promise<YouTubeLiveStatus | null> {
-  if (!YOUTUBE_API_KEY) {
-    console.warn("YOUTUBE_API_KEY is not set");
+  // Placeholder 값 무시
+  const isPlaceholder = (value: string | undefined) => {
+    if (!value) return true;
+    const placeholderPatterns = [
+      "your_youtube_api_key",
+      "your_api_key",
+    ];
+    return placeholderPatterns.some(pattern => 
+      value.toLowerCase().includes(pattern.toLowerCase())
+    );
+  };
+
+  if (!YOUTUBE_API_KEY || isPlaceholder(YOUTUBE_API_KEY)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[YouTube] YOUTUBE_API_KEY is not set or is a placeholder value");
+      console.warn("[YouTube] YouTube 방송을 표시하려면 .env.local에 실제 API 키를 설정하세요");
+    }
     return null;
   }
 

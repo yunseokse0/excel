@@ -39,6 +39,8 @@ npm start
 
 ## 🔧 환경 변수 설정
 
+### 로컬 개발 환경
+
 `.env.local` 파일을 생성하고 다음 변수들을 설정하세요:
 
 ```bash
@@ -50,9 +52,28 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# YouTube API (선택사항)
+# YouTube API (필수 - YouTube 방송 표시를 위해)
 YOUTUBE_API_KEY=your_youtube_api_key
 ```
+
+### Vercel 배포 환경
+
+Vercel 대시보드에서 환경 변수를 설정하세요:
+
+**필수:**
+- `YOUTUBE_API_KEY` - YouTube 방송 표시를 위해 필수
+
+**선택사항 (Supabase 사용 시):**
+- `NEXT_PUBLIC_SUPABASE_URL` - 프론트엔드 Supabase URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - 프론트엔드 Supabase Anon Key
+- `SUPABASE_URL` - 서버 사이드 Supabase URL
+- `SUPABASE_SERVICE_ROLE_KEY` - 서버 사이드 Supabase Service Role Key
+
+**환경 변수 확인:**
+- 배포 후 `/api/env-status` 엔드포인트로 환경 변수 상태 확인 가능
+- 개발 환경에서만 상세 정보 표시
+
+자세한 배포 가이드는 [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)를 참조하세요.
 
 ## 📊 Supabase 스키마 설정
 

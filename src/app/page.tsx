@@ -10,6 +10,7 @@ import { Skeleton } from "../components/ui/skeleton";
 export default function HomePage() {
   const [liveList, setLiveList] = useState<LiveEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   useEffect(() => {
     async function loadLiveList() {
@@ -54,6 +55,20 @@ export default function HomePage() {
           const allStreams = data.liveList;
           console.log(`[HomePage] 📺 Total streams: ${allStreams.length}`);
           
+          // 디버그 정보 표시
+          if (data.debug) {
+            console.log(`[HomePage] 🔍 Debug info:`, data.debug);
+            if (data.debug.message) {
+              console.log(`[HomePage] 💡 ${data.debug.message}`);
+            }
+            if (data.debug.diagnosticInfo) {
+              console.log(`[HomePage] 🔬 진단 정보:`, data.debug.diagnosticInfo);
+              if (data.debug.diagnosticInfo.youtubeQuotaExceeded) {
+                console.warn(`[HomePage] ⚠️ YouTube API 할당량 초과 - 24시간 후 자동 재시도`);
+              }
+            }
+          }
+          
           const lives: LiveEntry[] = allStreams
             .filter((stream: any) => {
               const isLive = stream.isLive !== false; // undefined도 true로 처리
@@ -72,6 +87,27 @@ export default function HomePage() {
             }));
           
           console.log(`[HomePage] ✅ Filtered to ${lives.length} live streams`);
+          
+          // 방송이 없을 때 디버그 정보 표시
+          if (lives.length === 0 && data.debug) {
+            console.warn(`[HomePage] ⚠️ 방송 리스트가 비어있습니다`);
+            console.warn(`[HomePage] 🔍 원인 분석:`);
+            console.warn(`  - YouTube API 키: ${data.debug.hasYoutubeKey ? '✅ 설정됨' : '❌ 미설정'}`);
+            console.warn(`  - Supabase: ${data.debug.hasSupabase ? '✅ 설정됨' : '❌ 미설정 (프론트엔드 모드)'}`);
+            if (data.debug.diagnosticInfo) {
+              const isQuotaExceeded = data.debug.diagnosticInfo.youtubeQuotaExceeded;
+              console.warn(`  - YouTube 할당량: ${isQuotaExceeded ? '⚠️ 초과' : '✅ 정상'}`);
+              setQuotaExceeded(isQuotaExceeded || false);
+            }
+            console.warn(`[HomePage] 💡 해결 방법:`);
+            console.warn(`  1. 서버 터미널에서 [LiveList], [YouTube], [SOOP] 로그 확인`);
+            console.warn(`  2. YouTube API 할당량 초과 시 24시간 후 자동 재시도`);
+            console.warn(`  3. SOOP API 실패 시 서버 로그에서 에러 확인`);
+            console.warn(`  4. 현재 실제로 방송 중인 BJ가 없을 수 있음`);
+          } else {
+            setQuotaExceeded(false);
+          }
+          
           setLiveList(lives);
         } else {
           console.warn(`[HomePage] ⚠️ API returned error or no data:`, data.error || 'No liveList');
@@ -125,7 +161,7 @@ export default function HomePage() {
     <div className="grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(260px,1fr)]">
       <section className="space-y-4 sm:space-y-6 order-2 lg:order-1">
         <HeroCarousel featured={featured} allLives={liveList} />
-        <LiveGrid lives={liveList} />
+        <LiveGrid lives={liveList} quotaExceeded={quotaExceeded} />
       </section>
 
       <aside className="space-y-4 order-1 lg:order-2">
