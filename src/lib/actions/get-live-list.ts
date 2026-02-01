@@ -318,24 +318,16 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
     // 카테고리 룰 엔진으로 필터링
     const defaultCategory = getActiveCategoryRules().find(r => r.id === DEFAULT_CATEGORY_ID);
     
-    // 더 많은 방송을 가져오기 위해 검색어 대폭 확장
+    // 더 많은 방송을 가져오기 위해 검색어 확장
     const searchQueries = [
-      // 엑셀 방송 관련 검색어 (우선순위)
+      // 일반 라이브 검색어 (더 많은 방송 수집을 위해 우선)
+      { q: "라이브", regionCode: "KR", relevanceLanguage: "ko" },
+      { q: "생방송", regionCode: "KR", relevanceLanguage: "ko" },
+      // 엑셀 방송 관련 검색어
       ...(defaultCategory ? [
         { q: "엑셀 방송", regionCode: "KR", relevanceLanguage: "ko" },
         { q: "엑셀 라이브", regionCode: "KR", relevanceLanguage: "ko" },
-        { q: "엑셀", regionCode: "KR", relevanceLanguage: "ko" },
-        { q: "엑셀 강의", regionCode: "KR", relevanceLanguage: "ko" },
-        { q: "엑셀 튜토리얼", regionCode: "KR", relevanceLanguage: "ko" },
       ] : []),
-      // 일반 라이브 검색어 추가 (더 많은 방송 수집)
-      { q: "라이브", regionCode: "KR", relevanceLanguage: "ko" },
-      { q: "방송", regionCode: "KR", relevanceLanguage: "ko" },
-      { q: "생방송", regionCode: "KR", relevanceLanguage: "ko" },
-      { q: "실시간", regionCode: "KR", relevanceLanguage: "ko" },
-      { q: "게임", regionCode: "KR", relevanceLanguage: "ko" },
-      { q: "음악", regionCode: "KR", relevanceLanguage: "ko" },
-      { q: "토크", regionCode: "KR", relevanceLanguage: "ko" },
     ];
     
     let allVideoItems: any[] = [];
@@ -771,18 +763,16 @@ async function fetchYouTubeLiveStreams(): Promise<LiveStreamInfo[]> {
         if (aIsExcel && !bIsExcel) return -1;
         if (!aIsExcel && bIsExcel) return 1;
         
-        // 한국어 방송 우선
-        const koreanPattern = /[가-힣]/;
-        const aIsKorean = koreanPattern.test(a.video.snippet?.title || "") || 
-                         koreanPattern.test(a.video.snippet?.channelTitle || "");
-        const bIsKorean = koreanPattern.test(b.video.snippet?.title || "") || 
-                         koreanPattern.test(b.video.snippet?.channelTitle || "");
-        if (aIsKorean && !bIsKorean) return -1;
-        if (!aIsKorean && bIsKorean) return 1;
-        
-        return 0;
+        // 시청자 수로 정렬
+        const aViewers = typeof a.video.liveStreamingDetails?.concurrentViewers === "string" 
+          ? parseInt(a.video.liveStreamingDetails.concurrentViewers, 10) 
+          : (a.video.liveStreamingDetails?.concurrentViewers as number) || 0;
+        const bViewers = typeof b.video.liveStreamingDetails?.concurrentViewers === "string"
+          ? parseInt(b.video.liveStreamingDetails.concurrentViewers, 10)
+          : (b.video.liveStreamingDetails?.concurrentViewers as number) || 0;
+        return bViewers - aViewers;
       })
-      .slice(0, 50); // 최대 50개로 제한
+      .slice(0, 100); // 최대 100개로 확장
     
     console.log(`[YouTube] ✅ Filtered to ${defaultCategoryVideos.length} category-matched live streams (from ${liveVideos.length} total live streams)`);
     console.log(`[YouTube] 📊 Total matches across all categories: ${matchedVideos.length}`);

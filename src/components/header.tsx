@@ -10,7 +10,6 @@ import { useLiveRanking } from "../hooks/use-live-ranking";
 const navItems = [
   { href: "/", label: "라이브", icon: Radio },
   { href: "/ranking", label: "랭킹", icon: Crown },
-  { href: "/live", label: "커뮤니티", icon: Users },
   { href: "/live-list", label: "방송 목록", icon: Radio },
 ];
 
